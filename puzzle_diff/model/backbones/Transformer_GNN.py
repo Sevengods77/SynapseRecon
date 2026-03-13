@@ -5,7 +5,8 @@ from torch_geometric.nn import TransformerConv
 class Transformer_GNN(nn.Module):
     def __init__(self, input_size, hidden_dim, heads, output_size, n_layers=4) -> None:
         super().__init__()
-
+        print(f"DEBUG: Transformer_GNN initialization. input_size={input_size}, hidden_dim={hidden_dim}, heads={heads}, output_size={output_size}")
+        
         self.module_list = nn.ModuleList(
             [TransformerConv(input_size, out_channels=hidden_dim // heads, heads=heads)]
             + [

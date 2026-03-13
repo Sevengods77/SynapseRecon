@@ -11,19 +11,23 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 class Wikiart_DT(Dataset):
     def __init__(self, train=True) -> None:
         super().__init__()
-        all_images = set(list(Path("datasets/wikiart").glob("*/*.jpg")))
-        train_file = Path("datasets/data_splits/wikiart_subset_train.txt")
-        test_file = Path("datasets/data_splits/wikiart_subset_test.txt")
-
-        with open(train_file, "r") as f:
-            train_images_set = set([x.rstrip() for x in f.readlines()])
-        with open(test_file, "r") as f:
-            test_images_set = set([x.rstrip() for x in f.readlines()])
+        import random
+        # Seed for consistent split across runs
+        random.seed(42)
+        
+        folder = Path("datasets/wikiart")
+        # Try finding images recursively in case of subfolders
+        all_images = sorted(list(folder.glob("**/*.jpg")) + list(folder.glob("**/*.png")))
+        
+        # Shuffle consistently
+        random.shuffle(all_images)
+        
+        split_idx = int(len(all_images) * 0.8)
+        
         if train:
-            self.images = [img for img in all_images if img.name in train_images_set]
+            self.images = all_images[:split_idx]
         else:
-            self.images = [img for img in all_images if img.name in test_images_set]
-        self.images = sorted(self.images)
+            self.images = all_images[split_idx:]
 
     def __len__(self):
         return len(self.images)

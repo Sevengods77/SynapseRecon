@@ -352,7 +352,7 @@ if __name__ == "__main__":
 
     dataset = GeometryPartDataset(**data_dict)
 
-    dt = Objects_Dataset(dataset, lambda x: x)
+    dt = Objects_Dataset(dataset, identity)
     dl = pyg.loader.DataLoader(dt, batch_size=100)
     dl_iter = iter(dl)
 

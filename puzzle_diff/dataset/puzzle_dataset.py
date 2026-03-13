@@ -12,7 +12,7 @@ import torch_geometric.loader
 import torchvision.transforms as transforms
 from PIL import Image
 from PIL.Image import Resampling
-from scipy.sparse.linalg import eigsh
+from scipy.sparse.linalg import eigsh, ArpackError
 from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
@@ -20,6 +20,14 @@ from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import get_laplacian, to_scipy_sparse_matrix
 from torchvision.transforms import InterpolationMode
 from torchvision.transforms import functional as F
+
+def get_first(x):
+    return x[0]
+
+
+def identity(x):
+    return x
+
 
 # import albumentations
 # import cv2
@@ -104,12 +112,15 @@ def generate_random_expander(num_nodes, degree, rng=None, max_num_iters=5, exp_i
 
 
 def get_eigenvalue(senders, receivers, num_nodes):
-    edge_index = torch.tensor(np.stack([senders, receivers]))
+    edge_index = torch.tensor(np.stack([senders, receivers]), dtype=torch.long)
     edge_index, edge_weight = get_laplacian(
         edge_index, None, normalization=None, num_nodes=num_nodes
     )
-    L = to_scipy_sparse_matrix(edge_index, edge_weight, num_nodes)
-    return eigsh(L, k=2, which="SM", return_eigenvectors=False)
+    L = to_scipy_sparse_matrix(edge_index, edge_weight, num_nodes=num_nodes)
+    try:
+        return eigsh(L, k=2, which="SM", return_eigenvectors=False)
+    except ArpackError:
+        return []
 
 
 def generate_random_regular_graph(num_nodes, degree, rng=None):
@@ -272,7 +283,7 @@ class Puzzle_Dataset(pyg_data.Dataset):
 
         indexes = torch.arange(patch_per_dim[0] * patch_per_dim[1]).reshape(
             xy.shape[:-1]
-        )
+        ).long()
         patches = einops.rearrange(patches, "x y c k1 k2 -> (x y) c k1 k2")
         if self.random:
             patches = patches[torch.randperm(len(patches))]
@@ -282,20 +293,22 @@ class Puzzle_Dataset(pyg_data.Dataset):
             )
 
             edge_index, _ = pyg.utils.dense_to_sparse(adj_mat)
+            edge_index = edge_index.long()
         else:
             if not self.unique_graph:
                 edge_index = generate_random_expander(
                     patch_per_dim[0] * patch_per_dim[1], self.degree
                 ).T
+                edge_index = edge_index.long()
         data = pyg_data.Data(
             x=xy,
             indexes=indexes,
             patches=patches,
-            edge_index=self.edge_index[patch_per_dim]
+            edge_index=self.edge_index[patch_per_dim].long()
             if self.unique_graph
-            else edge_index,
+            else edge_index.long(),
             ind_name=torch.tensor([idx]).long(),
-            patches_dim=torch.tensor([patch_per_dim]),
+            patches_dim=torch.tensor([patch_per_dim]).long(),
         )
         return data
 
@@ -343,9 +356,7 @@ class Puzzle_Dataset_Pad(Puzzle_Dataset):
 
         img = img.resize((width, height))#, resample=Resampling.BICUBIC)
 
-        img = self.trans
-
-        forms(img)
+        img = self.transforms(img)
         xy, patches = divide_images_into_patches(img, patch_per_dim, self.patch_size)
 
         xy = einops.rearrange(xy, "x y c -> (x y) c")
@@ -354,27 +365,29 @@ class Puzzle_Dataset_Pad(Puzzle_Dataset):
             patches = self.zero_margin(patches)
         indexes = torch.arange(patch_per_dim[0] * patch_per_dim[1]).reshape(
             xy.shape[:-1]
-        )
+        ).long()
         if self.degree == -1:
             adj_mat = torch.ones(
                 patch_per_dim[0] * patch_per_dim[1], patch_per_dim[0] * patch_per_dim[1]
             )
 
             edge_index, _ = pyg.utils.dense_to_sparse(adj_mat)
+            edge_index = edge_index.long()
         else:
             if not self.unique_graph:
                 edge_index = generate_random_expander(
                     patch_per_dim[0] * patch_per_dim[1], self.degree
                 ).T
+                edge_index = edge_index.long()
         data = pyg_data.Data(
             x=xy,
             indexes=indexes,
             patches=patches,
-            edge_index=self.edge_index[patch_per_dim]
+            edge_index=self.edge_index[patch_per_dim].long()
             if self.unique_graph
-            else edge_index,
+            else edge_index.long(),
             ind_name=torch.tensor([idx]).long(),
-            patches_dim=torch.tensor([patch_per_dim]),
+            patches_dim=torch.tensor([patch_per_dim]).long(),
         )
         return data
 
@@ -434,7 +447,7 @@ class Puzzle_Dataset_ROT_MP(Puzzle_Dataset):
 
         indexes = torch.arange(patch_per_dim[0] * patch_per_dim[1]).reshape(
             xy.shape[:-1]
-        )
+        ).long()
 
         rots = torch.tensor(
             [
@@ -478,9 +491,9 @@ class Puzzle_Dataset_ROT_MP(Puzzle_Dataset):
             rot=rots_tensor,
             rot_index=random_rot,
             patches=patches,
-            edge_index=edge_index,
+            edge_index=edge_index.long(),
             ind_name=torch.tensor([idx]).long(),
-            patches_dim=torch.tensor([patch_per_dim]),
+            patches_dim=torch.tensor([patch_per_dim]).long(),
         )
         return data
 
@@ -537,9 +550,9 @@ class Puzzle_Dataset_MP(Puzzle_Dataset):
         data = pyg_data.Data(
             x=xy,
             patches=patches,
-            edge_index=edge_index,
+            edge_index=edge_index.long(),
             ind_name=torch.tensor([idx]).long(),
-            patches_dim=torch.tensor([patch_per_dim]),
+            patches_dim=torch.tensor([patch_per_dim]).long(),
         )
         return data
 
@@ -612,12 +625,14 @@ class Puzzle_Dataset_ROT(Puzzle_Dataset):
             )
 
             edge_index, _ = pyg.utils.dense_to_sparse(adj_mat)
+            edge_index = edge_index.long()
         elif self.random_dropout:
             adj_mat = torch.ones(
                 patch_per_dim[0] * patch_per_dim[1], patch_per_dim[0] * patch_per_dim[1]
             )
 
             edge_index, _ = pyg.utils.dense_to_sparse(adj_mat)
+            edge_index = edge_index.long()
             degree = round(
                 (int(self.degree[:-1]) * (int(patch_per_dim[0] * patch_per_dim[1]) - 1))
                 / 100
@@ -632,6 +647,7 @@ class Puzzle_Dataset_ROT(Puzzle_Dataset):
                 edge_index = generate_random_expander(
                     patch_per_dim[0] * patch_per_dim[1], self.degree
                 ).T
+                edge_index = edge_index.long()
 
         # rotation classes : 0 -> no rotation
         #                   1 -> 90 degrees
@@ -640,7 +656,7 @@ class Puzzle_Dataset_ROT(Puzzle_Dataset):
 
         indexes = torch.arange(patch_per_dim[0] * patch_per_dim[1]).reshape(
             xy.shape[:-1]
-        )
+        ).long()
 
         rots = torch.tensor(
             [
@@ -691,11 +707,11 @@ class Puzzle_Dataset_ROT(Puzzle_Dataset):
             rot=rots_tensor,
             rot_index=random_rot,
             patches=patches,
-            edge_index=self.edge_index[patch_per_dim]
+            edge_index=self.edge_index[patch_per_dim].long()
             if self.unique_graph
-            else edge_index,
+            else edge_index.long(),
             ind_name=torch.tensor([idx]).long(),
-            patches_dim=torch.tensor([patch_per_dim]),
+            patches_dim=torch.tensor([patch_per_dim]).long(),
         )
         return data
 
@@ -705,7 +721,7 @@ if __name__ == "__main__":
 
     train_dt = CelebA_HQ(train=True)
     dt = Puzzle_Dataset_ROT(
-        train_dt, dataset_get_fn=lambda x: x[0], patch_per_dim=[(4, 4)]
+        train_dt, dataset_get_fn=get_first, patch_per_dim=[(4, 4)]
     )
 
     dl = torch_geometric.loader.DataLoader(dt, batch_size=100)

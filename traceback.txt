@@ -1,0 +1,252 @@
+Traceback (most recent 
+call last):
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\train_script.py",
+ line 204, in <module>
+    main(args)
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\train_script.py",
+ line 156, in main
+    trainer.fit(model, 
+train_loader, 
+val_loader)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 770, in fit
+    self._call_and_hand
+le_interrupt(
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 723, in _call_
+and_handle_interrupt
+    return 
+trainer_fn(*args, 
+**kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 811, in 
+_fit_impl
+    results = 
+self._run(model, ckpt_p
+ath=self.ckpt_path)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 1236, in _run
+    results = 
+self._run_stage()
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 1323, in 
+_run_stage
+    return 
+self._run_train()
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 1345, in 
+_run_train
+    self._run_sanity_ch
+eck()
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 1413, in 
+_run_sanity_check
+    val_loop.run()
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\loops\base.py", 
+line 204, in run
+    
+self.advance(*args, 
+**kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\loops\dataloader\
+evaluation_loop.py", 
+line 155, in advance
+    dl_outputs = self.e
+poch_loop.run(self._dat
+a_fetcher, 
+dl_max_batches, kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\loops\base.py", 
+line 204, in run
+    
+self.advance(*args, 
+**kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\loops\epoch\evalu
+ation_epoch_loop.py", 
+line 128, in advance
+    output = self._eval
+uation_step(**kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\loops\epoch\evalu
+ation_epoch_loop.py", 
+line 226, in 
+_evaluation_step
+    output = self.train
+er._call_strategy_hook(
+"validation_step", 
+*kwargs.values())
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\trainer\trainer.p
+y", line 1765, in 
+_call_strategy_hook
+    output = fn(*args, 
+**kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\pytorch_ligh
+tning\strategies\strate
+gy.py", line 344, in 
+validation_step
+    return self.model.v
+alidation_step(*args, 
+**kwargs)
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\model\spatial_dif
+fusion_on_angle.py", 
+line 809, in 
+validation_step
+    imgs, attentions = 
+self.p_sample_loop(
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\torch\autogr
+ad\grad_mode.py", line 
+27, in decorate_context
+    return func(*args, 
+**kwargs)
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\model\spatial_dif
+fusion_on_angle.py", 
+line 690, in 
+p_sample_loop
+    img, atts = 
+self.p_sample(
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\torch\autogr
+ad\grad_mode.py", line 
+27, in decorate_context
+    return func(*args, 
+**kwargs)
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\model\spatial_dif
+fusion_on_angle.py", 
+line 710, in p_sample
+    return 
+sampling_func(x, t, 
+t_index, cond, 
+edge_index, 
+patch_feats, batch)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\torch\autogr
+ad\grad_mode.py", line 
+27, in decorate_context
+    return func(*args, 
+**kwargs)
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\model\spatial_dif
+fusion_on_angle.py", 
+line 591, in 
+p_sample_ddim
+    model_output, 
+attentions = self.forwa
+rd_with_feats(
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\model\spatial_dif
+fusion_on_angle.py", 
+line 420, in 
+forward_with_feats
+    out, attentions = s
+elf.model.forward_with_
+feats(
+  File 
+"D:\Projects\Major Proj
+ect\DiffAssemble\puzzle
+_diff\model\backbones\e
+fficient_gat.py", line 
+132, in 
+forward_with_feats
+    pos_feats = 
+self.pos_mlp(xy_pos)  
+# MLP, (x, y) -> 32
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\torch\nn\mod
+ules\module.py", line 
+1130, in _call_impl
+    return 
+forward_call(*input, 
+**kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\torch\nn\mod
+ules\container.py", 
+line 139, in forward
+    input = 
+module(input)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\torch\nn\mod
+ules\module.py", line 
+1130, in _call_impl
+    return 
+forward_call(*input, 
+**kwargs)
+  File "D:\Miniconda\en
+vs\diffassemble\lib\sit
+e-packages\torch\nn\mod
+ules\linear.py", line 
+114, in forward
+    return 
+F.linear(input, 
+self.weight, self.bias)
+RuntimeError: mat1 and 
+mat2 shapes cannot be 
+multiplied (576x4 and 
+2x16)
+Sanity Checking DataLoader 0:   0%|          | 0/2 [00:00<?, ?it/s][1;34mwandb[0m: 
+[1;34mwandb[0m: You can sync this run to the cloud by running:
+[1;34mwandb[0m: [1mwandb sync D:\Projects\Major Project\DiffAssemble\wandb\offline-run-20260228_002802-ncvuykop[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb\offline-run-20260228_002802-ncvuykop\logs[0m

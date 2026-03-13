@@ -1,338 +1,218 @@
+# Monkey patch torch_scatter for Windows compatibility BEFORE any other imports
+try:
+    import torch
+    import torch_scatter
+    
+    def native_scatter(src, index, dim=0, out=None, dim_size=None, reduce="sum"):
+        if reduce == "sum" or reduce == "add":
+            if out is None:
+                if dim_size is None:
+                    dim_size = int(index.max()) + 1 if index.numel() > 0 else 0
+                out_shape = list(src.shape)
+                out_shape[dim] = dim_size
+                out = torch.zeros(out_shape, dtype=src.dtype, device=src.device)
+            return out.scatter_add_(dim, index.unsqueeze(-1).expand_as(src) if src.dim() > index.dim() else index, src)
+        elif reduce == "mean":
+            sum_val = native_scatter(src, index, dim, dim_size=dim_size, reduce="sum")
+            counts = torch.zeros(sum_val.shape[dim], dtype=src.dtype, device=src.device)
+            ones = torch.ones(index.shape, dtype=src.dtype, device=src.device)
+            counts.scatter_add_(0, index, ones)
+            if sum_val.dim() > 1:
+                view_shape = [1] * sum_val.dim()
+                view_shape[dim] = -1
+                counts = counts.view(view_shape)
+            return sum_val / counts.clamp(min=1)
+        else:
+            return torch_scatter.scatter(src, index, dim, out, dim_size, reduce)
+
+    # Apply the patch
+    torch_scatter.scatter = native_scatter
+    print("Applied native scatter monkey patch for Windows compatibility")
+except ImportError:
+    pass
+
 import argparse
 import os
 import sys
 import glob
 import torch_geometric
+import torch.optim.lr_scheduler
+
+# Compatibility fix for older torch versions where LRScheduler is not defined
+if not hasattr(torch.optim.lr_scheduler, "LRScheduler"):
+    torch.optim.lr_scheduler.LRScheduler = torch.optim.lr_scheduler._LRScheduler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 
-import argparse
 import math
 import random
 import string
 
-
 import pytorch_lightning as pl
 from dataset.dataset_utils import get_dataset, get_dataset_ROT
 
-# from model import spatial_diffusion as sd
+# Import model components
 from model import spatial_diffusion_on_angle as sd_angle
+from model.spatial_diffusion_on_angle import ModelMeanType
 
 import matplotlib
-import pytorch_lightning as pl
-from dataset import dataset_utils as du
-from model import spatial_diffusion as sd
-from model import spatial_diffusion_discrete as sdd
-from model import spatial_diffusion_discrete_rot as sdd_rot
-
-from pytorch_lightning.callbacks import ModelCheckpoint, ModelSummary
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.utilities import rank_zero_only
 
-import wandb
-
-
-def get_random_string(length):
-    # choose from all lowercase letter
-    letters = string.ascii_lowercase
-    result_str = "".join(random.choice(letters) for i in range(length))
-    return result_str  # print("Random string of length", length, "is:", result_str)
-
-
-class Percent(object):
-    def __new__(self, percent_string):
-        if percent_string.endswith("%"):
-            return str(percent_string)
-        else:
-            return int(percent_string)
-
-
-def main(
-    batch_size,
-    gpus,
-    steps,
-    num_workers,
-    dataset,
-    puzzle_sizes,
-    sampling,
-    inference_ratio,
-    offline,
-    classifier_free_prob,
-    classifier_free_w,
-    noise_weight,
-    data_augmentation,
-    checkpoint_path,
-    rotation,
-    only_rotation,
-    predict_xstart,
-    evaluate,
-    angle_type,
-    discrete,
-    loss_type,
-    cold_diffusion,
-    visual_pretrained,
-    freeze_backbone,
-    backbone,
-    n_layers,
-    architecture,
-    degree,
-    virt_nodes,
-    max_epochs,
-    unique_graph,
-    inf_fully,
-    all_equivariant,
-    wandb_id,
-    padding,
-    random_dropout,
-    acc_grad,
-    save_eval_images=False,
-    missing=0
-):
-    ### Define dataset
-    if rotation:
-        train_dt, test_dt, puzzle_sizes = du.get_dataset_ROT(
-            dataset=dataset,
-            puzzle_sizes=puzzle_sizes,
-            augment=data_augmentation,
-            degree=degree,
-            unique_graph=unique_graph,
-            inf_fully=inf_fully,
-            all_equivariant=all_equivariant,
-            random_dropout=random_dropout,
-            missing=missing
-        )
-    elif padding:
-        train_dt, test_dt, puzzle_sizes = du.get_dataset_padding(
-            dataset=dataset,
-            puzzle_sizes=puzzle_sizes,
-            augment=data_augmentation,
-            degree=degree,
-            inf_fully=inf_fully,
-            padding=padding,
-        )
-
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
     else:
-        train_dt, test_dt, puzzle_sizes = du.get_dataset(
-            dataset=dataset,
-            puzzle_sizes=puzzle_sizes,
-            augment=data_augmentation,
-            degree=degree,
-            unique_graph=unique_graph,
-            inf_fully=inf_fully,
-        )
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
-    dl_train = torch_geometric.loader.DataLoader(  # type: ignore
-        train_dt, batch_size=batch_size, num_workers=num_workers, shuffle=False
-    )
-    dl_test = torch_geometric.loader.DataLoader(  # type: ignore
-        test_dt, batch_size=batch_size, num_workers=num_workers, shuffle=False
-    )
+def main(args):
+    # Set seed
+    pl.seed_everything(42)
 
-    if discrete and rotation:
-        model = sdd_rot.GNN_Diffusion(
-            steps=steps,
-            sampling=sampling,
-            inference_ratio=inference_ratio,
-            classifier_free_w=classifier_free_w,
-            classifier_free_prob=classifier_free_prob,
-            noise_weight=noise_weight,
-            rotation=rotation,
-            model_mean_type=sd.ModelMeanType.START_X,
-            puzzle_sizes=puzzle_sizes,
-            scheduler=sd.ModelScheduler.LINEAR,
-            loss_type=loss_type,
-            only_rotation=only_rotation,
-            cold_diffusion=cold_diffusion,
-            virt_nodes=virt_nodes,
-        )
-    elif discrete:
-        model = sdd.GNN_Diffusion(
-            steps=steps,
-            sampling=sampling,
-            inference_ratio=inference_ratio,
-            classifier_free_w=classifier_free_w,
-            classifier_free_prob=classifier_free_prob,
-            noise_weight=noise_weight,
-            rotation=rotation,
-            model_mean_type=sd.ModelMeanType.START_X,
-            puzzle_sizes=puzzle_sizes,
-            scheduler=sd.ModelScheduler.LINEAR,
-            loss_type=loss_type,
+    # Get dataset
+    if args.rotation:
+        train_dataset, val_dataset, _ = get_dataset_ROT(
+            args.dataset,
+            args.puzzle_sizes,
+            args.data_augmentation,
+            args.angle_type,
+            args.degree,
+            args.unique_graph,
+            args.all_equivariant,
+            args.random_dropout
         )
     else:
-        model = sd.GNN_Diffusion(
-            steps=steps,
-            sampling=sampling,
-            inference_ratio=inference_ratio,
-            classifier_free_w=classifier_free_w,
-            classifier_free_prob=classifier_free_prob,
-            noise_weight=noise_weight,
-            rotation=rotation,
-            model_mean_type=sd.ModelMeanType.EPSILON
-            if not predict_xstart
-            else sd.ModelMeanType.START_X,
-            visual_pretrained=visual_pretrained,
-            freeze_backbone=freeze_backbone,
-            backbone=backbone,
-            n_layers=n_layers,
-            architecture=architecture,
-            virt_nodes=virt_nodes,
-            all_equivariant=all_equivariant,
+        train_dataset, val_dataset, _ = get_dataset(
+            args.dataset,
+            args.puzzle_sizes,
+            args.data_augmentation,
+            args.degree,
+            args.unique_graph,
         )
 
-    model.initialize_torchmetrics(puzzle_sizes)
-
-    ### define training
-
-    franklin = True if gpus > 1 else False
-
-    experiment_name = f"{dataset}-{puzzle_sizes}-{steps}-degree:{degree}-virtnode:{virt_nodes}-{get_random_string(6)}-{'discrete' if discrete else 'continuous'}-{'random_dropout' if random_dropout else 'ours_dropout'}-arch-{architecture}"
-
-    if rotation:
-        experiment_name = "ROT-" + experiment_name + f"backbone:{backbone}"
-
-    if padding:
-        experiment_name = "PADDING-" + experiment_name
-
-    tags = [f"{dataset}", f'{"franklin" if franklin else "fisso"}', "train"]
-
-    wandb_logger = WandbLogger(
-        project="Puzzle-Diff",
-        settings=wandb.Settings(code_dir="."),
-        offline=offline,
-        name=experiment_name,
-        # entity="puzzle_diff",
-        entity="puzzle_diff_academic",
-        tags=tags,
-        id=wandb_id if wandb_id else None,
-        resume="must" if wandb_id else None,
-    )
-
-    checkpoint_callback = ModelCheckpoint(
-        monitor="overall_acc", mode="max", save_top_k=2, save_last=True
-    )
-
-    trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=gpus,
-        accumulate_grad_batches=acc_grad if acc_grad > 0 else None,
-        strategy="ddp" if gpus > 1 else None,
-        check_val_every_n_epoch=5,
-        logger=wandb_logger,
-        num_sanity_val_steps=2,
-        callbacks=[checkpoint_callback, ModelSummary(max_depth=2)],
-        max_epochs=max_epochs,
-    )
-    if wandb_id:
-        checkpoint_path = sorted(glob.glob(f"Puzzle-Diff/{wandb_id}/checkpoints/*"))[-1]
-        print(checkpoint_path)
-    if evaluate:
-        model = sd.GNN_Diffusion.load_from_checkpoint(checkpoint_path)
-        model.initialize_torchmetrics(puzzle_sizes)
-        model.noise_weight = noise_weight
-        model.inference_ratio = inference_ratio
-        model.save_eval_images = save_eval_images
-
-        trainer.test(model, dl_test)
-    else:
-        trainer.fit(model, dl_train, dl_test, ckpt_path=checkpoint_path)
-
-
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-
-    # Add the arguments to the parser
-    ap.add_argument("-batch_size", type=int, default=6)
-    ap.add_argument("-gpus", type=int, default=1)
-    ap.add_argument("-steps", type=int, default=300)
-    ap.add_argument("-num_workers", type=int, default=8)
-    ap.add_argument("-max_epochs", type=int, default=1000)
-    ap.add_argument(
-        "-dataset",
-        default="wikiart",
-        choices=["celeba", "wikiart", "cifar100", "coco", "imagenet"],
-    )
-    ap.add_argument("-sampling", default="DDIM", choices=["DDPM", "DDIM"])
-    ap.add_argument("-inference_ratio", type=int, default=10)
-
-    # ap.add_argument("--degree", type=int, default=-1)
-    ap.add_argument("--degree", type=Percent, default="100%")
-
-    ap.add_argument("--virt_nodes", type=int, default=4)
-    ap.add_argument("--unique_graph", type=bool, default=False)
-    ap.add_argument("--inf_fully", type=bool, default=False)
-
-    ap.add_argument("--n_layers", type=int, default=4)
-    ap.add_argument(
-        "-puzzle_sizes", nargs="+", default=[6], type=int, help="Input a list of values"
-    )
-
-    ap.add_argument("--offline", action="store_true", default=False)
-    ap.add_argument("--wandb_id", type=str)
-
-    ap.add_argument("--classifier_free_w", type=float, default=0.2)
-    ap.add_argument("--classifier_free_prob", type=float, default=0.0)
-    ap.add_argument("--data_augmentation", type=str, default="none")
-    ap.add_argument("--checkpoint_path", type=str, default="")
-    ap.add_argument("--noise_weight", type=float, default=0.0)
-    ap.add_argument("--predict_xstart", type=bool, default=False)
-    ap.add_argument("--rotation", type=bool, default=False)
-    ap.add_argument("--only_rotation", action="store_true", default=False)
-    ap.add_argument("--angle_type", type=str, default="radian")
-    ap.add_argument("--freeze_backbone", type=bool, default=False)
-    ap.add_argument("--visual_pretrained", type=bool, default=True)
-    ap.add_argument("--discrete", type=bool, default=False)
-    ap.add_argument("--cold_diffusion", type=bool, default=False)
-    ap.add_argument("--loss_type", type=str, default="cross_entropy")
-    ap.add_argument("--backbone", type=str, default="efficientnet_b0")
-    ap.add_argument("--architecture", type=str, default="transformer")
-    ap.add_argument("--all_equivariant", type=bool, default=False)
-    ap.add_argument("--evaluate", type=bool, default=False)
-    ap.add_argument("--padding", type=int, default=0)
-    ap.add_argument("--acc_grad", type=int, default=0)
-    ap.add_argument("--missing", type=int, default=0)
-    ap.add_argument("--random_dropout", type=bool, default=False)
-    ap.add_argument("--save_eval_images", type=bool, default=False)
-
-    args = ap.parse_args()
-    print(args)
-    main(
+    # Data loaders
+    train_loader = torch_geometric.loader.DataLoader(
+        train_dataset,
         batch_size=args.batch_size,
-        gpus=args.gpus,
-        steps=args.steps,
+        shuffle=True,
         num_workers=args.num_workers,
-        dataset=args.dataset,
-        puzzle_sizes=args.puzzle_sizes,
+        pin_memory=True,
+    )
+    val_loader = torch_geometric.loader.DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,
+    )
+
+    # Logger
+    wandb_logger = WandbLogger(
+        project="DiffAssemble",
+        name=f"{args.dataset}_{args.puzzle_sizes}",
+        id=args.wandb_id,
+        offline=args.offline,
+    )
+
+    # Model - Using correct class name GNN_Diffusion and ONLY supported arguments
+    model = sd_angle.GNN_Diffusion(
+        steps=args.steps,
         sampling=args.sampling,
         inference_ratio=args.inference_ratio,
-        offline=args.offline,
-        classifier_free_prob=args.classifier_free_prob,
+        virt_nodes=args.virt_nodes,
+        n_layers=args.n_layers,
         classifier_free_w=args.classifier_free_w,
+        classifier_free_prob=args.classifier_free_prob,
         noise_weight=args.noise_weight,
-        data_augmentation=args.data_augmentation,
-        checkpoint_path=args.checkpoint_path,
+        model_mean_type=ModelMeanType.START_X if args.predict_xstart else ModelMeanType.EPSILON,
         rotation=args.rotation,
-        only_rotation=args.only_rotation,
         angle_type=args.angle_type,
-        predict_xstart=args.predict_xstart,
-        discrete=args.discrete,
-        loss_type=args.loss_type,
-        cold_diffusion=args.cold_diffusion,
-        evaluate=args.evaluate,
         freeze_backbone=args.freeze_backbone,
         visual_pretrained=args.visual_pretrained,
         backbone=args.backbone,
-        n_layers=args.n_layers,
         architecture=args.architecture,
-        degree=args.degree,
-        virt_nodes=args.virt_nodes,
-        max_epochs=args.max_epochs,
-        unique_graph=args.unique_graph,
-        inf_fully=args.inf_fully,
         all_equivariant=args.all_equivariant,
-        wandb_id=args.wandb_id,
-        padding=args.padding,
-        random_dropout=args.random_dropout,
-        acc_grad=args.acc_grad,
-        save_eval_images=args.save_eval_images,
-        missing=args.missing
+        puzzle_sizes=args.puzzle_sizes,
     )
+    print("Model Architecture:")
+    print(model)
+
+    # Checkpoint
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=f"checkpoints/{args.dataset}_{args.puzzle_sizes}",
+        filename="{epoch}-{overall_acc:.4f}",
+        save_top_k=5,
+        monitor="overall_acc",
+        mode="max",
+    )
+
+    # Trainer
+    trainer = pl.Trainer(
+        accelerator="auto",
+        devices="auto",
+        max_epochs=args.max_epochs,
+        logger=wandb_logger,
+        callbacks=[checkpoint_callback],
+        accumulate_grad_batches=args.acc_grad if args.acc_grad > 0 else 1,
+        precision="16-mixed" if torch.cuda.is_available() else "32-true",
+    )
+
+    # Train
+    if not args.evaluate:
+        if args.checkpoint_path != "":
+            trainer.fit(model, train_loader, val_loader, ckpt_path=args.checkpoint_path)
+        else:
+            trainer.fit(model, train_loader, val_loader)
+    else:
+        trainer.validate(model, val_loader, ckpt_path=args.checkpoint_path)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--gpus", type=int, default=1)
+    parser.add_argument("--steps", type=int, default=300)
+    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--max_epochs", type=int, default=1000)
+    parser.add_argument("--dataset", type=str, default="celeba")
+    parser.add_argument("--sampling", type=str, default="DDIM")
+    parser.add_argument("--inference_ratio", type=int, default=10)
+    parser.add_argument("--degree", type=str, default="100%")
+    parser.add_argument("--virt_nodes", type=int, default=4)
+    parser.add_argument("--unique_graph", type=str2bool, default=False)
+    parser.add_argument("--inf_fully", type=str2bool, default=False)
+    parser.add_argument("--n_layers", type=int, default=4)
+    parser.add_argument("--puzzle_sizes", nargs="+", type=int, default=[6])
+    parser.add_argument("--offline", type=str2bool, default=False)
+    parser.add_argument("--wandb_id", type=str, default=None)
+    parser.add_argument("--classifier_free_w", type=float, default=0.2)
+    parser.add_argument("--classifier_free_prob", type=float, default=0.0)
+    parser.add_argument("--data_augmentation", type=str, default="none")
+    parser.add_argument("--checkpoint_path", type=str, default="")
+    parser.add_argument("--noise_weight", type=float, default=0.0)
+    parser.add_argument("--predict_xstart", type=str2bool, default=False)
+    parser.add_argument("--rotation", type=str2bool, default=False)
+    parser.add_argument("--only_rotation", type=str2bool, default=False)
+    parser.add_argument("--angle_type", type=str, default="radian")
+    parser.add_argument("--freeze_backbone", type=str2bool, default=False)
+    parser.add_argument("--visual_pretrained", type=str2bool, default=True)
+    parser.add_argument("--discrete", type=str2bool, default=False)
+    parser.add_argument("--cold_diffusion", type=str2bool, default=False)
+    parser.add_argument("--loss_type", type=str, default="cross_entropy")
+    parser.add_argument("--backbone", type=str, default="efficientnet_b0")
+    parser.add_argument("--architecture", type=str, default="transformer")
+    parser.add_argument("--all_equivariant", type=str2bool, default=False)
+    parser.add_argument("--evaluate", type=str2bool, default=False)
+    parser.add_argument("--padding", type=int, default=0)
+    parser.add_argument("--acc_grad", type=int, default=0)
+    parser.add_argument("--missing", type=int, default=0)
+    parser.add_argument("--random_dropout", type=str2bool, default=False)
+    parser.add_argument("--save_eval_images", type=str2bool, default=False)
+    args = parser.parse_args()
+
+    main(args)

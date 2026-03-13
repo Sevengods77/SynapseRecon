@@ -4,7 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.graphgym.register import register_layer
 from torch_geometric.nn.conv.transformer_conv import TransformerConv
-from torch_scatter import scatter
+# Using native fallback for Windows compatibility to avoid torch_scatter binary issues
+from .torch_scatter_fallback import scatter
 
 def get_activation(activation):
     if activation == "relu":
@@ -166,7 +167,7 @@ class Exophormer_GNN(nn.Module):
         device = batch.device
         if self.virt_nodes > 0:
             # adding virtual nodes
-            virtual_nodes = torch.arange(self.virt_nodes).repeat(n_graphs).to(device)
+            virtual_nodes = torch.arange(self.virt_nodes).repeat(n_graphs).to(device).long()
             #breakpoint()
             if mean_value:
                 virt_nodes_h = x.mean(dim=0).unsqueeze_(0).repeat(self.virt_nodes*n_graphs, 1)
@@ -178,7 +179,7 @@ class Exophormer_GNN(nn.Module):
             x = torch.cat((x, virt_nodes_h))
            # print(x.size())
             batch = torch.cat(
-                (batch, torch.arange(n_graphs).repeat(self.virt_nodes).to(device)) # type: ignore
+                (batch, torch.arange(n_graphs).repeat(self.virt_nodes).to(device).long()) # type: ignore
             )
             virt_edges = []
 
@@ -190,20 +191,20 @@ class Exophormer_GNN(nn.Module):
                         num_real_nodes + (i + 1) * self.virt_nodes,
                     )
                     .repeat(num_nodes)
-                    .to(device)
+                    .to(device).long()
             )
                 virt_edges.append(virt_edge)
 
             virt_edges = torch.cat(virt_edges)
-            src_edges = torch.cat([torch.arange(num_real_nodes).to(device), virt_edges])
-            dst_edges = torch.cat([virt_edges, torch.arange(num_real_nodes).to(device)])
-            edge_index = torch.hstack((edge_index, torch.stack((src_edges, dst_edges))))
+            src_edges = torch.cat([torch.arange(num_real_nodes).to(device).long(), virt_edges.long()])
+            dst_edges = torch.cat([virt_edges.long(), torch.arange(num_real_nodes).to(device).long()])
+            edge_index = torch.hstack((edge_index.long(), torch.stack((src_edges, dst_edges)).long()))
 
         for i in range(self.n_layers - 1):
-            x = self.module_list[i](x=x, edge_index=edge_index)
+            x = self.module_list[i](x=x, edge_index=edge_index.long())
 
         x, atts = self.module_list[-1](
-            x=x, edge_index=edge_index, return_attention_weights=True
+            x=x, edge_index=edge_index.long(), return_attention_weights=True
         )
         if self.virt_nodes > 0:
             x = x[:num_real_nodes]  # remove virtual nodes

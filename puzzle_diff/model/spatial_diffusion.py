@@ -705,6 +705,13 @@ class GNN_Diffusion(pl.LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_idx):
+        # Force cast all index tensors to long for Windows compatibility
+        if hasattr(batch, 'edge_index'): batch.edge_index = batch.edge_index.long()
+        if hasattr(batch, 'batch'): batch.batch = batch.batch.long()
+        if hasattr(batch, 'indexes'): batch.indexes = batch.indexes.long()
+        if hasattr(batch, 'ind_name'): batch.ind_name = batch.ind_name.long()
+        if hasattr(batch, 'patches_dim'): batch.patches_dim = batch.patches_dim.long()
+        
         # return super().training_step(*args, **kwargs)
         batch_size = batch.batch.max().item() + 1
         t = torch.randint(0, self.steps, (batch_size,), device=self.device).long()
@@ -903,11 +910,11 @@ class GNN_Diffusion(pl.LightningModule):
             self.log_dict(self.metrics)
         # return accuracy_dict
 
-    def validation_epoch_end(self, outputs) -> None:
+    def on_validation_epoch_end(self) -> None:
         self.log_dict(self.metrics)
 
-    def test_epoch_end(self, outputs) -> None:
-        return self.validation_epoch_end(outputs)
+    def on_test_epoch_end(self) -> None:
+        self.on_validation_epoch_end()
 
     # def test_step(self, batch, batch_idx, *args, **kwargs):
     #     return self.validation_step(batch, batch_idx, *args, **kwargs)

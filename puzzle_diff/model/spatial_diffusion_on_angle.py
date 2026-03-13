@@ -125,9 +125,12 @@ def rotate_images(patches, rot_vector):
     return rot2
 
 
-def angle_to_sin_and_cosine(degrees):
-    # Convert degrees to radians
-    angle_radians = degrees * (math.pi / 180)
+def angle_to_sin_and_cosine(degrees, angle_type="degree"):
+    if angle_type == "radian":
+        angle_radians = degrees
+    else:
+        # Convert degrees to radians
+        angle_radians = degrees * (math.pi / 180)
     # Calculate sine and cosine
     sin_value = torch.sin(angle_radians)
     cos_value = torch.cos(angle_radians)
@@ -252,6 +255,7 @@ class GNN_Diffusion(pl.LightningModule):
         architecture: str = "transformer",
         virt_nodes: int = 4,
         all_equivariant=False,
+        puzzle_sizes=[6],
         *args,
         **kwargs,
     ) -> None:
@@ -343,39 +347,36 @@ class GNN_Diffusion(pl.LightningModule):
         self.backbone = backbone
         self.n_layers = n_layers
         self.architecture = architecture
+        self.initialize_torchmetrics(puzzle_sizes)
         self.init_backbone()
 
         self.save_hyperparameters()
 
     def init_backbone(self):
+        in_ch = self.input_channels + (2 if self.rotation else 0)
+        out_ch = self.output_channels + (2 if self.rotation else 0)
+        
         self.model = Eff_GAT(
             steps=self.steps,
-            input_channels=self.input_channels,
-            output_channels=self.output_channels,
+            input_channels=in_ch,
+            output_channels=out_ch,
             visual_pretrained=self.visual_pretrained,
             freeze_backbone=self.free_backbone,
             model=self.backbone,
             n_layers=self.n_layers,
             architecture=self.architecture,
-            virt_nodes=self.virt_nodes
+            virt_nodes=self.virt_nodes,
+            all_equivariant=self.all_equivariant
         )
-        if self.rotation:
-            self.model = Eff_GAT(
-                steps=self.steps,
-                input_channels=self.input_channels + 2,
-                output_channels=self.output_channels + 2,
-                all_equivariant=self.all_equivariant,
-                model=self.backbone,
-            )
 
 
     def initialize_torchmetrics(self, n_patches):
         metrics = {}
 
         for i in n_patches:
-            metrics[f"{i}_acc"] = torchmetrics.MeanMetric()
-            metrics[f"{i}__piece_acc"] = torchmetrics.MeanMetric()
-            metrics[f"{i}_nImages"] = torchmetrics.SumMetric()
+            metrics[f"{(i, i)}_acc"] = torchmetrics.MeanMetric()
+            metrics[f"{(i, i)}__piece_acc"] = torchmetrics.MeanMetric()
+            metrics[f"{(i, i)}_nImages"] = torchmetrics.SumMetric()
         metrics["overall_acc"] = torchmetrics.MeanMetric()
         metrics["overall__piece_acc"] = torchmetrics.MeanMetric()
         metrics["overall_nImages"] = torchmetrics.SumMetric()
@@ -414,6 +415,7 @@ class GNN_Diffusion(pl.LightningModule):
 
         return_attentions=False,
     ) -> Any:
+        print(f"DEBUG: GNN_Diffusion.forward_with_feats xy_pos shape: {xy_pos.shape}")
         out, attentions = self.model.forward_with_feats(
             xy_pos, time, patch_rgb, edge_index, patch_feats, batch
         )
@@ -448,29 +450,31 @@ class GNN_Diffusion(pl.LightningModule):
         edge_index=None,
         batch=None,
     ):
-
+        print(f"DEBUG: p_losses x_start shape: {x_start.shape}")
         if noise is None:
             noise = torch.randn_like(x_start)
 
         x_start_tr = x_start[:, :2]
-        x_start_rot = sin_and_cosine_to_angle(x_start[:, 2:])
-        
-        # rotation process
-        x_noisy_rot = self.q_sample(x_start=x_start_rot, t=t, noise=noise)
         # translation process
         x_noisy_tr = self.q_sample(x_start=x_start_tr, t=t, noise=noise)
 
+        if self.rotation:
+            x_start_rot = sin_and_cosine_to_angle(x_start[:, 2:])
+            # rotation process
+            x_noisy_rot = self.q_sample(x_start=x_start_rot, t=t, noise=noise)
 
         if self.steps == 1:  # Transformer case
-            x_noisy_rot = torch.zeros_like(x_noisy_rot)
+            if self.rotation:
+                x_noisy_rot = torch.zeros_like(x_noisy_rot)
             x_noisy_tr = torch.zeros_like(x_noisy_tr)
 
-        # retriev from angle to vector
-
-        x_noisy_cos_sin = angle_to_sin_and_cosine(x_noisy_rot, angle_type=self.angle_type)
-
         # Concatenation
-        x_noisy = torch.concat([x_noisy_tr, x_noisy_cos_sin], axis=1) 
+        if self.rotation:
+            # retriev from angle to vector
+            x_noisy_cos_sin = angle_to_sin_and_cosine(x_noisy_rot, angle_type=self.angle_type)
+            x_noisy = torch.concat([x_noisy_tr, x_noisy_cos_sin], axis=1) 
+        else:
+            x_noisy = x_noisy_tr
 
 
         patch_feats = self.visual_features(cond)
@@ -608,35 +612,21 @@ class GNN_Diffusion(pl.LightningModule):
         x_tr = x[:, :2]
         
 
-        # estraggo i valori di rotazione
-        x_0_r = sin_and_cosine_to_angle(x_0[:, 2:]).unsqueeze(1)
-        x_rot = sin_and_cosine_to_angle(x[:, 2:]).unsqueeze(1)
-
-
-
         eps_tr = self._predict_eps_from_xstart(x_tr, t, x_0_tr)
-        eps_rot = self._predict_eps_from_xstart(x_rot, t, x_0_r)
-        
-        #eps = self._predict_eps_from_xstart(x, t, x_0)
-        
-
-
-        # estimate "direction to x_t"
-        # Why eps not N(0, 1)?
         pred_sample_direction_tr = (1 - alpha_prod_prev) ** (0.5) * eps_tr
-
-        pred_sample_direction_rot = (1 - alpha_prod_prev) ** (0.5) * eps_rot
-
-        # x_t-1 = a * x_0 + b * eps
         prev_sample_tr = alpha_prod_prev ** (0.5) * x_0_tr + pred_sample_direction_tr
 
-
-        prev_sample_rot = angle_to_sin_and_cosine(alpha_prod_prev ** (0.5) * x_0_r + pred_sample_direction_rot)
-
-
-        prev_sample = torch.concat(
-            [prev_sample_tr, prev_sample_rot], axis=1
-        )  # combinazione
+        # estimate "direction to x_t"
+        if self.rotation:
+            # estraggo i valori di rotazione
+            x_0_r = sin_and_cosine_to_angle(x_0[:, 2:]).unsqueeze(1)
+            x_rot = sin_and_cosine_to_angle(x[:, 2:]).unsqueeze(1)
+            eps_rot = self._predict_eps_from_xstart(x_rot, t, x_0_r)
+            pred_sample_direction_rot = (1 - alpha_prod_prev) ** (0.5) * eps_rot
+            prev_sample_rot = angle_to_sin_and_cosine(alpha_prod_prev ** (0.5) * x_0_r + pred_sample_direction_rot)
+            prev_sample = torch.concat([prev_sample_tr, prev_sample_rot], axis=1)
+        else:
+            prev_sample = prev_sample_tr
 
         return prev_sample, attentions
 
@@ -653,7 +643,10 @@ class GNN_Diffusion(pl.LightningModule):
 
         b = shape[0]
 
-        shape = torch.Size([b, 2])
+        if self.rotation:
+            shape = torch.Size([b, 3])
+        else:
+            shape = torch.Size([b, 2])
         # start from pure noise (for each example in the batch)
         img = torch.randn(shape, device=device) * self.noise_weight
         # img = einops.rearrange(
@@ -673,10 +666,10 @@ class GNN_Diffusion(pl.LightningModule):
         # time_t = torch.full((b,), 0, device=device, dtype=torch.long)
         # treate zero angles from starting point
 
-        x = angle_to_sin_and_cosine(torch.zeros(b, 1).to(device), angle_type=self.angle_type)
-
-        # check if first translation or rotation
-        img = torch.concat([img, x], axis=1)  # combinazione
+        if self.rotation:
+            x = angle_to_sin_and_cosine(torch.zeros(b, 1).to(device), angle_type=self.angle_type)
+            # check if first translation or rotation
+            img = torch.concat([img, x], axis=1)  # combinazione
         
 
         for i in tqdm(
@@ -896,11 +889,11 @@ class GNN_Diffusion(pl.LightningModule):
             self.log_dict(self.metrics)
         # return accuracy_dict
 
-    def validation_epoch_end(self, outputs) -> None:
+    def on_validation_epoch_end(self) -> None:
         self.log_dict(self.metrics)
 
-    def test_epoch_end(self, outputs) -> None:
-        return self.validation_epoch_end(outputs)
+    def on_test_epoch_end(self) -> None:
+        self.on_validation_epoch_end()
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)

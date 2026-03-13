@@ -4,6 +4,11 @@ import os
 import sys
 
 import torch_geometric
+import torch.optim.lr_scheduler
+
+# Compatibility fix for older torch versions where LRScheduler is not defined
+if not hasattr(torch.optim.lr_scheduler, "LRScheduler"):
+    torch.optim.lr_scheduler.LRScheduler = torch.optim.lr_scheduler._LRScheduler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 
@@ -29,6 +34,16 @@ import wandb
 
 warnings.filterwarnings("ignore")
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 def get_random_string(length):
     # choose from all lowercase letter
@@ -117,7 +132,7 @@ def main(
         settings=wandb.Settings(code_dir="."),
         offline=offline,
         name=experiment_name,
-        entity="puzzle_diff_academic",
+        # entity="puzzle_diff_academic",
         tags=tags,
         id=wandb_id if wandb_id else None,
         resume="must" if wandb_id else None,
@@ -128,9 +143,8 @@ def main(
     )
     model.initialize_torchmetrics(train_dt.dataset.used_categories)
     trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=gpus,
-        strategy="ddp" if gpus > 1 else None,
+        accelerator="auto",
+        devices="auto",
         max_epochs=max_epochs,
         check_val_every_n_epoch=5,
         logger=wandb_logger,
@@ -171,14 +185,14 @@ if __name__ == "__main__":
     ap.add_argument("--data_augmentation", type=str, default="none")
     ap.add_argument("--checkpoint_path", type=str, default="")
     ap.add_argument("--noise_weight", type=float, default=0.0)
-    ap.add_argument("--predict_xstart", type=bool, default=True)
+    ap.add_argument("--predict_xstart", type=str2bool, default=True)
     ap.add_argument("--backbone", type=str, default="vn_dgcnn")
     ap.add_argument("--architecture", type=str, default="transformer")
-    ap.add_argument("--freeze_backbone", type=bool, default=False)
-    ap.add_argument("--visual_pretrained", type=bool, default=True)
+    ap.add_argument("--freeze_backbone", type=str2bool, default=False)
+    ap.add_argument("--visual_pretrained", type=str2bool, default=True)
     ap.add_argument("--loss_type", type=str, default="all")
     ap.add_argument("--category", type=str, default="")
-    ap.add_argument("--evaluate", type=bool, default=False)
+    ap.add_argument("--evaluate", type=str2bool, default=False)
     ap.add_argument("--max_epochs", type=int, default=500)
     ap.add_argument("--use_equi_inv", action="store_true", default=False)
     ap.add_argument("--wandb_id", type=str)

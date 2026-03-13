@@ -34,6 +34,9 @@ class Eff_GAT(nn.Module):
         all_equivariant=False
     ) -> None:
         super().__init__()
+        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
+        self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+        
         if model == "resnet18equiv":
             self.visual_backbone = ResNet18()
         else:
@@ -42,17 +45,22 @@ class Eff_GAT(nn.Module):
             )
         self.all_equivariant=all_equivariant
         self.model = model
-        self.combined_features_dim = {
-            "resnet18": 3136,
-            "resnet50": 12352,
-            "efficientnet_b0": 1088 + 32 + 32,
-            'resnet18equiv': 1088 + 32 + 32, #3136,
-            #97792 + 32 + 32 resnet50
-        }[model]
-
         self.input_channels = input_channels
         self.output_channels = output_channels
         self.freeze_backbone = freeze_backbone
+
+        # Determine features dimension dynamically
+        dummy_patch = torch.zeros(1, 3, 32, 32)
+        self.visual_backbone.eval() # Ensure eval mode for BatchNorm
+        with torch.no_grad():
+            dummy_feats = self.visual_features(dummy_patch)
+        self.visual_backbone.train() # Back to train mode by default if not freezing
+        
+        # patch_feats + pos_feats (32) + time_feats (32)
+        self.combined_features_dim = dummy_feats.shape[1] + 32 + 32
+        print(f"DEBUG: Dynamic combined_features_dim: {self.combined_features_dim}")
+        
+        print(f"DEBUG: Eff_GAT initialization. model={model}, combined_features_dim={self.combined_features_dim}")
 
         if architecture == "transformer":
             self.gnn_backbone = Transformer_GNN(
@@ -85,31 +93,20 @@ class Eff_GAT(nn.Module):
         )
         # self.GN = GraphNorm(self.combined_features_dim)
 
-        self.final_mlp = nn.Sequential(
-            nn.Linear(self.combined_features_dim, 32),
-            nn.GELU(),
-            nn.Linear(32, output_channels),
-        )
-        self.time_emb = nn.Embedding(steps, 32)
-        self.pos_mlp = nn.Sequential(
-            nn.Linear(input_channels, 16), nn.GELU(), nn.Linear(16, 32)
-        )
-        # self.GN = GraphNorm(self.combined_features_dim)
         self.mlp = nn.Sequential(
             nn.Linear(self.combined_features_dim, 128),
             nn.GELU(),
             nn.Linear(128, self.combined_features_dim),
         )
+        print(f"DEBUG: Eff_GAT layers. mlp[0] in_features={self.mlp[0].in_features}")
+
+        self.final_mlp = nn.Sequential(
+            nn.Linear(self.combined_features_dim, 32),
+            nn.GELU(),
+            nn.Linear(32, output_channels),
+        )
 
 
-        self.linear1 = nn.Linear(8192, 544) #  # dimension for resnet18
-
-        self.linear2 = nn.Linear(4096, 544)  # dimension for resnet18
-
-        mean = torch.tensor([0.4850, 0.4560, 0.4060])[None, :, None, None]
-        std = torch.tensor([0.2290, 0.2240, 0.2250])[None, :, None, None]
-        self.register_buffer("mean", mean)
-        self.register_buffer("std", std)
 
     def forward(self, xy_pos, time, patch_rgb, edge_index, batch):
         patch_feats = self.visual_features(patch_rgb)
@@ -130,8 +127,14 @@ class Eff_GAT(nn.Module):
 
         time_feats = self.time_emb(time)  # embedding, int -> 32
         pos_feats = self.pos_mlp(xy_pos)  # MLP, (x, y) -> 32
-        # COMBINE  and transform with MLP
+        # COMBINED and transform with MLP
         combined_feats = torch.cat([patch_feats, pos_feats, time_feats], -1)
+        
+        # Check for dimension mismatch with self.mlp[0]
+        if combined_feats.shape[-1] != self.mlp[0].in_features:
+            print(f"CRITICAL DIMENSION MISMATCH: combined_feats input is {combined_feats.shape[-1]}, but mlp[0] expects {self.mlp[0].in_features}")
+            print(f"patch_feats: {patch_feats.shape}, pos_feats: {pos_feats.shape}, time_feats: {time_feats.shape}")
+        
         combined_feats = self.mlp(combined_feats)
 
         # GNN

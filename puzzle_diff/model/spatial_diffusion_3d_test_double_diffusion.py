@@ -1012,26 +1012,11 @@ class GNN_Diffusion(pl.LightningModule):
             self.log_dict(self.metrics, prog_bar=True, on_step=False, on_epoch=True)
         # return accuracy_dict
 
-    def validation_epoch_end(self, outputs) -> None:
-        metrics = {"rmse_t", "rmse_r", "gd_r", "part_acc"}
-        metrics_names = set(self.metrics) - {
-            "rmse_t_AVG",
-            "rmse_r_AVG",
-            "gd_r_AVG",
-            "part_acc_AVG",
-        }
+    def on_validation_epoch_end(self) -> None:
+        self.log_dict(self.metrics)
 
-        for i in metrics:
-            for j in metrics_names:
-                if i in j:
-                    self.avg_metrics[f"{i}_AVG"].update(
-                        self.metrics[j].compute().item()
-                    )
-
-        self.log_dict(self.avg_metrics, prog_bar=True, on_step=False, on_epoch=True)
-
-    def test_epoch_end(self, outputs) -> None:
-        return self.validation_epoch_end(outputs)
+    def on_test_epoch_end(self) -> None:
+        self.on_validation_epoch_end()
 
     def test_step(self, batch, batch_idx):
         with torch.no_grad():

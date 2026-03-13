@@ -22,7 +22,16 @@ from .vist_dataset import Vist_dataset
 from .wiki_dt import Wiki_dt
 from .wikiart_dt import Wikiart_DT
 
+def get_first(x):
+    return x[0]
+
+
+def identity(x):
+    return x
+
+
 ALLOWED_DT = ["celeba", "cifar100", "wikiart", "imagenet"]
+
 ALLOWED_TEXT = ["nips", "sind", "roc", "wiki"]
 
 
@@ -61,7 +70,7 @@ def get_dataset(
     real_puzzle_sizes = [(x, x) for x in puzzle_sizes]
 
     # Define a lambda function to get the first element of a tuple
-    get_fn = lambda x: x[0]
+    get_fn = get_first
 
     # Load the specified dataset
     if dataset == "celeba":
@@ -130,7 +139,7 @@ def get_dataset_missing_pieces(
     real_puzzle_sizes = [(x, x) for x in puzzle_sizes]
 
     # Define a lambda function to get the first element of a tuple
-    get_fn = lambda x: x[0]
+    get_fn = get_first
 
     # Load the specified dataset
     if dataset == "celeba":
@@ -199,7 +208,7 @@ def get_dataset_ROT(
     real_puzzle_sizes = [(x, x) for x in puzzle_sizes]
 
     # Define a lambda function to get the first element of a tuple
-    get_fn = lambda x: x[0]
+    get_fn = get_first
 
     # Load the specified dataset
     if dataset == "celeba":
@@ -293,7 +302,7 @@ def get_dataset_padding(
     real_puzzle_sizes = [(x, x) for x in puzzle_sizes]
 
     # Define a lambda function to get the first element of a tuple
-    get_fn = lambda x: x[0]
+    get_fn = get_first
 
     # Load the specified dataset
     if dataset == "celeba":
@@ -337,7 +346,7 @@ def get_dataset_old(
 
     real_puzzle_sizes = [(x, x) for x in puzzle_sizes]
 
-    get_fn = lambda x: x[0]
+    get_fn = get_first
 
     if dataset == "celeba":
         train_dt = CelebA(
@@ -456,7 +465,7 @@ def get_dataset_3d(
     else:
         raise Exception(f"Dataset {dataset} is not provided.")
 
-    train_dt = Objects_Dataset(train_dt, lambda x: x)
-    test_dt = Objects_Dataset(test_dt, lambda x: x, missing)
+    train_dt = Objects_Dataset(train_dt, identity)
+    test_dt = Objects_Dataset(test_dt, identity, missing)
 
     return train_dt, None, test_dt

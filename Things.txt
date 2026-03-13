@@ -1,0 +1,1 @@
+d:\Projects\Major Project\DiffAssemble\checkpoints\celeba_[6]\epoch=4-overall_acc=0.0147.ckpt

@@ -11,21 +11,15 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 class CelebA_HQ(Dataset):
     def __init__(self, train=True) -> None:
         super().__init__()
-        all_images = set(
-            list(Path("datasets/CelebAMask-HQ/CelebA-HQ-img").glob("*.jpg"))
-        )
-        train_file = Path("datasets/data_splits/CelebA-HQ_train.txt")
-        test_file = Path("datasets/data_splits/CelebA-HQ_test.txt")
-
-        with open(train_file, "r") as f:
-            train_images_set = set([x.rstrip() for x in f.readlines()])
-        with open(test_file, "r") as f:
-            test_images_set = set([x.rstrip() for x in f.readlines()])
         if train:
-            self.images = [img for img in all_images if img.name in train_images_set]
+            folder = Path("datasets/CelebA-HQ_train")
         else:
-            self.images = [img for img in all_images if img.name in test_images_set]
-        self.images = sorted(self.images)
+            folder = Path("datasets/CelebA-HQ_test")
+        
+        if not folder.exists():
+            raise FileNotFoundError(f"Dataset folder {folder} not found.")
+
+        self.images = sorted(list(folder.glob("*.jpg")) + list(folder.glob("*.png")))
 
     def __len__(self):
         return len(self.images)

@@ -18,11 +18,15 @@ from torchvision.transforms import InterpolationMode
 from torchvision.transforms import functional as F
 
 
+def identity(x):
+    return x
+
+
 class Text_dataset(pyg_data.Dataset):
     def __init__(
         self,
         dataset=None,
-        dataset_get_fn=lambda x: x,
+        dataset_get_fn=identity,
     ) -> None:
         super().__init__()
 

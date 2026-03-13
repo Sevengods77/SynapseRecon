@@ -724,11 +724,11 @@ class GNN_Diffusion(pl.LightningModule):
             self.log_dict(self.metrics)
         # return accuracy_dict
 
-    def validation_epoch_end(self, outputs) -> None:
+    def on_validation_epoch_end(self) -> None:
         self.log_dict(self.metrics)
 
-    def test_epoch_end(self, outputs) -> None:
-        return self.validation_epoch_end(outputs)
+    def on_test_epoch_end(self) -> None:
+        self.on_validation_epoch_end()
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)

@@ -18,11 +18,15 @@ from torchvision.transforms import InterpolationMode
 from torchvision.transforms import functional as F
 
 
+def identity(x):
+    return x
+
+
 class Vist_dataset(pyg_data.Dataset):
     def __init__(
         self,
         dataset=None,
-        dataset_get_fn=lambda x: x,
+        dataset_get_fn=identity,
     ) -> None:
         super().__init__()
 
@@ -67,7 +71,7 @@ if __name__ == "__main__":
     from sind_vist_dt import Sind_Vist_dt
 
     train_dt = Sind_Vist_dt(split="train")
-    dt = Vist_dataset(train_dt, dataset_get_fn=lambda x: x)
+    dt = Vist_dataset(train_dt, dataset_get_fn=identity)
 
     dl = torch_geometric.loader.DataLoader(dt, batch_size=100)
     dl_iter = iter(dl)
