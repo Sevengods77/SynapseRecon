@@ -1004,7 +1004,7 @@ class GNN_Diffusion(pl.LightningModule):
 
         fig.canvas.draw()
         im = PIL.Image.frombytes(
-            "RGB", fig.canvas.get_width_height(), fig.canvas.tostring_rgb()
+            "RGBA", fig.canvas.get_width_height(), fig.canvas.buffer_rgba()
         )
         im = wandb.Image(im)
         self.logger.experiment.log(
@@ -1100,7 +1100,7 @@ class GNN_Diffusion(pl.LightningModule):
 
         fig.canvas.draw()
         im = PIL.Image.frombytes(
-            "RGB", fig.canvas.get_width_height(), fig.canvas.tostring_rgb()
+            "RGBA", fig.canvas.get_width_height(), fig.canvas.buffer_rgba()
         )
         im = wandb.Image(im)
         self.logger.experiment.log(
