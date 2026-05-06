@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+websockets
+ultralytics
+torch
+transformers
+chromadb
+opencv-python
+numpy
+pillow

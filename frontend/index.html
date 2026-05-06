@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spatial Puzzle Solver</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .header {
+            margin-top: 40px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .upload-controls {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .container {
+            position: relative;
+            width: 90%;
+            max-width: 900px;
+            background-color: #000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .status-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+            z-index: 20;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pipeline-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 90%;
+            max-width: 900px;
+        }
+
+        .pipeline-section h2 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #00f2fe;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>SynapseRecon AR</h1>
+        <p>Train database with master image, then analyze fragments</p>
+    </div>
+
+    <div class="pipeline-section">
+        <h2>Step 1: Train Database (Master Image)</h2>
+        <div class="upload-controls" style="margin-bottom: 0; box-shadow: none;">
+            <label for="masterUpload" class="btn">
+                Choose Master Image
+            </label>
+            <input type="file" id="masterUpload" accept="image/*">
+            <button id="ingestBtn" class="btn" style="display: none;">Ingest Pieces</button>
+        </div>
+    </div>
+
+    <div class="pipeline-section">
+        <h2>Step 2: Solve Puzzle (Analyze Fragments)</h2>
+        <div class="upload-controls" style="margin-bottom: 0; box-shadow: none;">
+            <label for="imageUpload" class="btn">
+                Choose Fragment Image
+            </label>
+            <input type="file" id="imageUpload" accept="image/*">
+            <button id="analyzeBtn" class="btn" style="display: none;">Analyze Fragments</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <canvas id="displayCanvas"></canvas>
+        <div id="statusOverlay" class="status-overlay">
+            <span class="spinner"></span> <span id="statusText">Analyzing image...</span>
+        </div>
+    </div>
+
+    <script>
+        const masterUpload = document.getElementById('masterUpload');
+        const ingestBtn = document.getElementById('ingestBtn');
+        
+        const imageUpload = document.getElementById('imageUpload');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        
+        const canvas = document.getElementById('displayCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusOverlay = document.getElementById('statusOverlay');
+        const statusText = document.getElementById('statusText');
+
+        let currentImage = null;
+        let selectedFile = null;
+        let currentMode = null;
+
+        function handleImageSelection(e, btnToShow, mode) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            selectedFile = file;
+            currentMode = mode;
+            
+            if (mode === 'master') analyzeBtn.style.display = 'none';
+            else ingestBtn.style.display = 'none';
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    currentImage = img;
+                    btnToShow.style.display = 'block';
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        masterUpload.addEventListener('change', (e) => handleImageSelection(e, ingestBtn, 'master'));
+        imageUpload.addEventListener('change', (e) => handleImageSelection(e, analyzeBtn, 'fragment'));
+
+        ingestBtn.addEventListener('click', async function() {
+            if (!selectedFile || currentMode !== 'master') return;
+            statusText.innerText = "Ingesting master image...";
+            statusOverlay.style.display = 'block';
+            ingestBtn.disabled = true;
+            ctx.drawImage(currentImage, 0, 0);
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch('http://localhost:8000/ingest_master', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) throw new Error("Server response was not ok");
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Success: ${result.message}`);
+                } else {
+                    alert("Ingestion Error: " + result.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Connection Error: " + err.message + "\nIf the server just restarted, please wait a few seconds for the AI models to load and try again.");
+            } finally {
+                statusOverlay.style.display = 'none';
+                ingestBtn.disabled = false;
+            }
+        });
+
+        // Handle analysis request
+        analyzeBtn.addEventListener('click', async function() {
+            if (!selectedFile || currentMode !== 'fragment') return;
+
+            statusText.innerText = "Analyzing fragments...";
+            statusOverlay.style.display = 'block';
+            analyzeBtn.disabled = true;
+
+            // Redraw clean image before analyzing (clears old boxes)
+            ctx.drawImage(currentImage, 0, 0);
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch('http://localhost:8000/analyze_image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error("Server response was not ok");
+                
+                const result = await response.json();
+                
+                if (result.detections && result.detections.length > 0) {
+                    drawOverlay(result.detections);
+                } else if (result.error) {
+                    alert("Analysis Error: " + result.error);
+                } else {
+                    alert("No fragments detected.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Connection Error: " + err.message + "\nIf the server just restarted, please wait a few seconds for the AI models to load and try again.");
+            } finally {
+                statusOverlay.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        // Draw Bounding Boxes and Labels
+        function drawOverlay(detections) {
+            detections.forEach(det => {
+                const [x1, y1, x2, y2] = det.box;
+                const width = x2 - x1;
+                const height = y2 - y1;
+                const id = det.id;
+
+                // Box style
+                ctx.strokeStyle = '#00ffea';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.roundRect(x1, y1, width, height, 8);
+                ctx.stroke();
+
+                // Fill subtle background
+                ctx.fillStyle = 'rgba(0, 255, 234, 0.15)';
+                ctx.fill();
+
+                // Label background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                
+                // Scale font size based on image size to ensure it's readable
+                const fontSize = Math.max(14, Math.floor(canvas.height * 0.02));
+                ctx.font = `${fontSize}px Arial`;
+                
+                const displayId = id === "Unknown" ? "Unknown Match" : `Match: ${id.substring(0, 8)}...`;
+                const textWidth = ctx.measureText(displayId).width;
+                
+                ctx.beginPath();
+                ctx.roundRect(x1, y1 - (fontSize + 10), Math.max(textWidth + 20, 80), fontSize + 10, [8, 8, 0, 0]);
+                ctx.fill();
+
+                // Label text
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(displayId, x1 + 10, y1 - 8);
+            });
+        }
+    </script>
+</body>
+</html>
