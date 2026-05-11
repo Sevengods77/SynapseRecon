@@ -25,9 +25,19 @@ env/
 .DS_Store
 Thumbs.db
 
-# Large model/data files (optional - remove if you want to track these)
-*.pt
-*.pth
-*.ckpt
-*.h5
-*.pkl
+# Large model/data files (we track these in this repo for portability)
+# *.pt (moved to checkpoints)
+# *.ckpt (moved to checkpoints)
+!checkpoints/*.pt
+!checkpoints/*.ckpt
+!checkpoints/**/*.ckpt
+
+# User-supplied images in master_images/ (do not commit personal photos)
+master_images/*
+!master_images/.gitkeep
+
+# ChromaDB generated data
+vector_db/
+
+# Always keep folder placeholders
+!.gitkeep

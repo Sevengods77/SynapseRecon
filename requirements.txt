@@ -8,3 +8,10 @@ chromadb
 opencv-python
 numpy
 pillow
+einops
+torchvision
+torch-geometric
+python-multipart
+gradio
+requests
+scikit-image
