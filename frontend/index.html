@@ -271,6 +271,33 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* AR Camera Styles */
+        #arContainer {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #arVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        #arOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allow clicks to pass through */
+            z-index: 10;
+        }
+
     </style>
 </head>
 <body>
@@ -307,6 +334,10 @@
         <div id="statusOverlay" class="status-overlay">
             <span class="spinner"></span> <span id="statusText">Analyzing image...</span>
         </div>
+        <div id="arContainer">
+            <video id="arVideo" autoplay playsinline></video>
+            <canvas id="arOverlay"></canvas>
+        </div>
     </div>
 
     <div class="pipeline-section" style="margin-top: 20px;">
@@ -342,8 +373,8 @@
         </table>
     </div>
 
-    <div class="pipeline-section" id="assemblyGuideSection" style="margin-bottom: 40px; border: 2px solid #4facfe;">
-        <h2>Step 4 & 5: AR Assembly Guide</h2>
+    <div class="pipeline-section" id="assemblyGuideSection" style="margin-bottom: 20px; border: 2px solid #4facfe;">
+        <h2>Step 4: Audio Assembly Guide</h2>
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px;">
             <p style="color: #94a3b8; font-size: 13px; margin: 0; display: flex; align-items: center;">
                 <span id="listeningIndicator" class="listening-indicator"></span> 
@@ -359,6 +390,14 @@
         </ul>
     </div>
 
+    <div class="pipeline-section" id="arOverlaySection" style="margin-bottom: 40px; border: 2px solid #10b981;">
+        <h2>Step 5: AR Ghost Overlay</h2>
+        <p style="color: #94a3b8; font-size: 13px; margin-top: 0;">Activate the live camera feed to see the puzzle ghost overlay for visual guidance.</p>
+        <div style="display: flex; justify-content: center; padding-top: 10px;">
+            <button id="visualizeBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">Visualize and Reassemble</button>
+        </div>
+    </div>
+
     <script>
         const masterUpload = document.getElementById('masterUpload');
         const ingestBtn = document.getElementById('ingestBtn');
@@ -372,6 +411,7 @@
         const statusText = document.getElementById('statusText');
 
         let currentImage = null;
+        let masterImage = null;
         let selectedFile = null;
         let currentMode = null;
 
@@ -393,6 +433,7 @@
                     canvas.height = img.height;
                     ctx.drawImage(img, 0, 0);
                     currentImage = img;
+                    if (mode === 'master') masterImage = img;
                     btnToShow.style.display = 'block';
                 }
                 img.src = event.target.result;
@@ -745,16 +786,96 @@
             recognition.start();
         }
 
+        let isARMode = false;
+        const arContainer = document.getElementById('arContainer');
+        const arVideo = document.getElementById('arVideo');
+        const arOverlay = document.getElementById('arOverlay');
+
+        async function startARMode() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                arVideo.srcObject = stream;
+                
+                arVideo.onloadedmetadata = () => {
+                    arOverlay.width = arContainer.clientWidth;
+                    arOverlay.height = arContainer.clientHeight;
+                    drawGhostOverlay();
+                };
+
+                canvas.style.display = 'none';
+                arContainer.style.display = 'block';
+                isARMode = true;
+                
+                // Keep redrawing if needed or handle resizing
+                window.addEventListener('resize', () => {
+                    if(isARMode) {
+                        arOverlay.width = arContainer.clientWidth;
+                        arOverlay.height = arContainer.clientHeight;
+                        drawGhostOverlay();
+                    }
+                });
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                alert("Could not access camera. Please ensure you have granted camera permissions.");
+            }
+        }
+
+        function drawGhostOverlay() {
+            const ctxOverlay = arOverlay.getContext('2d');
+            ctxOverlay.clearRect(0, 0, arOverlay.width, arOverlay.height);
+            
+            const imgToDraw = masterImage || currentImage;
+            if (imgToDraw) {
+                ctxOverlay.globalAlpha = 0.3; // Semi-transparent
+                
+                const scale = Math.min(arOverlay.width / imgToDraw.width, arOverlay.height / imgToDraw.height);
+                const drawWidth = imgToDraw.width * scale;
+                const drawHeight = imgToDraw.height * scale;
+                const x = (arOverlay.width / 2) - (drawWidth / 2);
+                const y = (arOverlay.height / 2) - (drawHeight / 2);
+                
+                ctxOverlay.drawImage(imgToDraw, x, y, drawWidth, drawHeight);
+                ctxOverlay.globalAlpha = 1.0;
+
+                // Draw a simple 3x3 grid for guidance
+                ctxOverlay.strokeStyle = 'rgba(0, 255, 234, 0.5)';
+                ctxOverlay.lineWidth = 2;
+                
+                for(let i=1; i<3; i++) {
+                    ctxOverlay.beginPath();
+                    ctxOverlay.moveTo(x + (drawWidth / 3) * i, y);
+                    ctxOverlay.lineTo(x + (drawWidth / 3) * i, y + drawHeight);
+                    ctxOverlay.stroke();
+                    
+                    ctxOverlay.beginPath();
+                    ctxOverlay.moveTo(x, y + (drawHeight / 3) * i);
+                    ctxOverlay.lineTo(x + drawWidth, y + (drawHeight / 3) * i);
+                    ctxOverlay.stroke();
+                }
+            }
+        }
+
         startGuideBtn.addEventListener('click', () => {
             if (assemblySteps.length === 0) {
                 alert("Instructions are not ready yet. Please wait for them to generate or reassemble the puzzle.");
                 return;
             }
+
             currentStepIndex = 0;
             renderSteps();
             speakStep();
             startListening();
             startGuideBtn.innerText = "Restart Vocal Guide";
+        });
+
+        const visualizeBtn = document.getElementById('visualizeBtn');
+        visualizeBtn.addEventListener('click', () => {
+            if (!isARMode) {
+                startARMode();
+                window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll up to the central view so they can see the camera
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         });
     </script>
 </body>
