@@ -17,6 +17,12 @@ from fastapi.middleware.cors import CORSMiddleware
 import torchvision.transforms as transforms
 import torch_geometric as pyg
 import torch_geometric.data as pyg_data
+from pydantic import BaseModel
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Load environment variables (API Keys)
+load_dotenv()
 
 # Add puzzle_diff to Python path so DiffAssemble model can be imported
 # Uses a path relative to this file — works on any machine after cloning the repo
@@ -40,6 +46,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize Gemini
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+SYSTEM_INSTRUCTION = """
+You are a friendly, natural-sounding puzzle assembly assistant guiding a beginner. Convert the provided spatial data into clear, conversational voice instructions.
+Rules:
+1. Exactly one instruction per fragment.
+2. NEVER use the word "next". Use varied transitions like "Then", "Now", "Following that", "Moving on".
+3. DO NOT output robotic coordinates or say "row X", "column Y", or "out of". Instead, mentally translate the grid coordinates into natural regions of the puzzle (e.g., "the top-left corner", "the upper edge", "the lower-right area", "the center").
+4. Identify pieces using descriptive labels based on their starting area (e.g., "Find the fragment in the bottom right of your workspace", "Look for the piece on the top left"), rather than just calling them "Piece 1".
+5. Describe the movement naturally (e.g., "Slide it upwards and slightly to the right to form the top edge").
+6. Output ONLY a raw JSON array of strings, without any markdown formatting or introductory text.
+"""
+vlm_model = genai.GenerativeModel(
+    'gemini-2.5-flash-lite',
+    system_instruction=SYSTEM_INSTRUCTION,
+    generation_config={
+        "temperature": 0.1,
+        "max_output_tokens": 1000,
+        "response_mime_type": "application/json"
+    }
+)
+
+class Phase3Data(BaseModel):
+    fragment_data: list
 
 # ─────────────────────────────────────────────
 # Model Loading
@@ -68,6 +99,13 @@ diff_models = {}
 _img_transforms = transforms.Compose([transforms.ToTensor()])
 
 if DIFFASSEMBLE_AVAILABLE:
+    # Temporarily patch torch.load to bypass weights_only=True security error
+    _orig_load = torch.load
+    def _patched_load(*args, **kwargs):
+        kwargs['weights_only'] = False
+        return _orig_load(*args, **kwargs)
+    torch.load = _patched_load
+
     for mode, path in CHECKPOINTS.items():
         if os.path.exists(path):
             try:
@@ -79,6 +117,9 @@ if DIFFASSEMBLE_AVAILABLE:
                 print(f"FAILED to load DiffAssemble [{mode}]: {e}")
         else:
             print(f"Warning: Checkpoint not found — {path}")
+            
+    # Restore original torch.load
+    torch.load = _orig_load
 
 # ─────────────────────────────────────────────
 # In-memory pipeline state (shared between Step 2 → Step 3)
@@ -169,7 +210,7 @@ async def analyze_image(file: UploadFile = File(...)):
         img_w, img_h = image.size
 
         # FastSAM segmentation
-        results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.4, iou=0.9, verbose=False)
+        results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.6, iou=0.45, verbose=False)
 
         response_data = []
         if results and len(results) > 0 and results[0].masks is not None:
@@ -179,6 +220,10 @@ async def analyze_image(file: UploadFile = File(...)):
                 x1, y1, x2, y2 = map(int, box)
 
                 if x2 <= x1 or y2 <= y1:
+                    continue
+                
+                # Filter out small noise artifacts
+                if (x2 - x1) < 20 or (y2 - y1) < 20:
                     continue
 
                 crop = image.crop((x1, y1, x2, y2))
@@ -232,6 +277,7 @@ async def analyze_image(file: UploadFile = File(...)):
 @app.post("/reassemble")
 async def reassemble(mode: str = Form("celeba")):
     print(f"[Step 3] Reassembly requested with mode: {mode}")
+    print(f"DEBUG: DIFFASSEMBLE_AVAILABLE = {DIFFASSEMBLE_AVAILABLE}")
 
     if not pipeline_state["image_bytes"]:
         return {"error": "No scattered image found. Please run Step 2 first."}
@@ -321,9 +367,11 @@ async def reassemble(mode: str = Form("celeba")):
                     target_y = int(grid_row * cell_h + cell_h / 2)
 
                     # Human-readable direction hint for VLM (Phase 4)
-                    h_dir = "right" if target_x > cx else "left"
-                    v_dir = "down" if target_y > cy else "up"
-                    direction_hint = f"Move {h_dir} and {v_dir} to row {grid_row + 1}, column {grid_col + 1}"
+                    start_h = "left" if cx < img_w / 3 else "right" if cx > 2 * img_w / 3 else "center"
+                    start_v = "top" if cy < img_h / 3 else "bottom" if cy > 2 * img_h / 3 else "middle"
+                    start_pos = "center" if start_h == "center" and start_v == "middle" else f"{start_v} {start_h}"
+                    
+                    direction_hint = f"Currently sitting in the {start_pos} area of the workspace. Needs to be placed in row {grid_row + 1} (out of {scale}) and column {grid_col + 1} (out of {scale}) of the final image."
             except Exception:
                 pass
 
@@ -359,6 +407,78 @@ async def reassemble(mode: str = Form("celeba")):
         return {"error": str(e), "results": []}
 
 
+# ─────────────────────────────────────────────
+# STEP 4: Generate Instructions (VLM)
+# ─────────────────────────────────────────────
+@app.post("/generate_steps")
+def generate_steps(data: Phase3Data):
+    import time
+    print(f"[Step 4] Generating instructions for {len(data.fragment_data)} pieces...")
+    
+    start_time = time.time()
+    hints = [f"Piece {p.get('piece_index', '?')}: {p.get('direction_hint', 'matched location')}" for p in data.fragment_data]
+    
+    prompt = f"Spatial Data:\n{hints}"
+    
+    try:
+        import requests
+        api_key = os.environ.get("GEMINI_API_KEY")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]},
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": 1000,
+                "responseMimeType": "application/json"
+            }
+        }
+        resp = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload, timeout=15)
+        resp.raise_for_status()
+        text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+        
+        # Cleanup JSON formatting
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        
+        steps = json.loads(text.strip())
+        
+        if isinstance(steps, dict):
+            for v in steps.values():
+                if isinstance(v, list):
+                    steps = v
+                    break
+
+        # Save to file for user verification (JSON)
+        with open("last_instructions.json", "w") as f:
+            json.dump({
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "piece_count": len(data.fragment_data),
+                "instructions": steps
+            }, f, indent=4)
+        
+        # Save as a readable text file
+        with open("assembly_instructions.txt", "w", encoding="utf-8") as f:
+            f.write(f"Assembly Instructions Generated at: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Total Pieces: {len(data.fragment_data)}\n")
+            f.write("-" * 50 + "\n")
+            for idx, step in enumerate(steps):
+                f.write(f"Piece {idx + 1}:\n  {step}\n\n")
+                
+        print(f"  Instructions saved to last_instructions.json and assembly_instructions.txt")
+
+        duration = time.time() - start_time
+        print(f"  VLM generation completed in {duration:.2f}s")
+            
+    except Exception as e:
+        print(f"  VLM generation error: {e}")
+        steps = [f"For piece {p.get('piece_index', '?')}, {p.get('direction_hint', 'its correct location')}." for p in data.fragment_data]
+        
+    return {"steps": steps}
+
+
 def _divide_into_patches(img, patch_per_dim, patch_size):
     """Divide image tensor into non-overlapping patches and return grid positions."""
     img2 = img.permute(1, 2, 0)
@@ -384,13 +504,13 @@ async def websocket_endpoint(websocket: WebSocket):
             image_data = base64.b64decode(data.split(",")[1])
             image = Image.open(io.BytesIO(image_data)).convert("RGB")
             frame = np.array(image)
-            results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.4, iou=0.9, verbose=False)
+            results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.6, iou=0.45, verbose=False)
             response_data = []
             if results and len(results) > 0 and results[0].masks is not None:
                 boxes = results[0].boxes.xyxy.cpu().numpy()
                 for idx, box in enumerate(boxes):
                     x1, y1, x2, y2 = map(int, box)
-                    if x2 <= x1 or y2 <= y1: continue
+                    if x2 <= x1 or y2 <= y1 or (x2 - x1) < 20 or (y2 - y1) < 20: continue
                     crop = image.crop((x1, y1, x2, y2))
                     inputs = processor(images=crop, return_tensors="pt").to(device)
                     with torch.no_grad(): outputs = dino_model(**inputs)
@@ -406,4 +526,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=False)

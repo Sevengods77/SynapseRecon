@@ -216,6 +216,61 @@
 
         select option { background: #1a1a2e; }
 
+        /* Step 4 & 5: Assembly HUD Styles */
+        .step-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+        .step-item {
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .step-item.active {
+            background: rgba(79, 172, 254, 0.15);
+            border-left: 4px solid #4facfe;
+            box-shadow: 0 0 15px rgba(79, 172, 254, 0.2);
+            transform: translateX(5px);
+        }
+        .step-number {
+            background: #4facfe;
+            color: #1a1a2e;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .listening-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .listening-indicator.active {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse-green 1.5s infinite;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
     </style>
 </head>
 <body>
@@ -268,8 +323,9 @@
     </div>
 
     <div class="result-table-wrap" id="resultTableWrap">
-        <div class="result-table-header">
-            ✅ Graph Successfully Solved — Piece Placement Map
+        <div class="result-table-header" style="justify-content: space-between;">
+            <span>✅ Graph Successfully Solved — Piece Placement Map</span>
+            <button onclick="fetchAssemblySteps(lastResults)" class="btn" style="padding: 5px 12px; font-size: 12px; background: #4facfe;">Generate Guide Manually</button>
         </div>
         <table>
             <thead>
@@ -284,6 +340,23 @@
             </thead>
             <tbody id="resultTableBody"></tbody>
         </table>
+    </div>
+
+    <div class="pipeline-section" id="assemblyGuideSection" style="margin-bottom: 40px; border: 2px solid #4facfe;">
+        <h2>Step 4 & 5: AR Assembly Guide</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px;">
+            <p style="color: #94a3b8; font-size: 13px; margin: 0; display: flex; align-items: center;">
+                <span id="listeningIndicator" class="listening-indicator"></span> 
+                <span id="listeningText">Vocal Assistant: Offline</span>
+            </p>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="testVoice()" class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 12px; padding: 5px 12px;">Test Voice</button>
+                <button id="startGuideBtn" class="btn" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">Start Assembly Guide</button>
+            </div>
+        </div>
+        <ul id="stepList" class="step-list">
+            <!-- Steps populated via JS -->
+        </ul>
     </div>
 
     <script>
@@ -446,7 +519,10 @@
         const resultTableBody = document.getElementById('resultTableBody');
         const modeSelect = document.getElementById('modeSelect');
 
+        let lastResults = [];
+
         reassembleBtn.addEventListener('click', async function() {
+            console.log("Reassemble clicked");
             statusText.innerText = 'Running DiffAssemble restructuring...';
             statusOverlay.style.display = 'block';
             reassembleBtn.disabled = true;
@@ -488,6 +564,12 @@
                 });
 
                 resultTableWrap.classList.add('visible');
+                lastResults = result.results;
+
+                // Trigger Step 4: Instruction Generation
+                console.log("Automatically triggering fetchAssemblySteps...");
+                fetchAssemblySteps(result.results);
+
             } catch (err) {
                 console.error(err);
                 alert('Connection Error: ' + err.message + '\nMake sure the server is running and Step 2 has been completed first.');
@@ -495,6 +577,184 @@
                 statusOverlay.style.display = 'none';
                 reassembleBtn.disabled = false;
             }
+        });
+
+        // ── Step 4 & 5: Assembly Guide Logic ───────────────────────
+        let currentStepIndex = 0;
+        let assemblySteps = [];
+        let recognition = null;
+        let isListening = false;
+
+        const assemblyGuideSection = document.getElementById('assemblyGuideSection');
+        const startGuideBtn = document.getElementById('startGuideBtn');
+        const stepList = document.getElementById('stepList');
+        const listeningIndicator = document.getElementById('listeningIndicator');
+        const listeningText = document.getElementById('listeningText');
+
+        async function fetchAssemblySteps(fragmentData) {
+            console.log("fetchAssemblySteps called with data:", fragmentData);
+            if (!fragmentData || fragmentData.length === 0) {
+                console.warn("No fragment data provided to guide generator.");
+                return;
+            }
+            try {
+                // Show a mini status
+                listeningText.innerText = "Generating AI Instructions...";
+                startGuideBtn.disabled = true;
+                startGuideBtn.innerText = "Generating...";
+                
+                const response = await fetch('http://localhost:8000/generate_steps', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fragment_data: fragmentData })
+                });
+                const result = await response.json();
+                assemblySteps = result.steps;
+                
+                renderSteps();
+                // Ensure it's visible even if CSS is weird
+                assemblyGuideSection.style.display = 'block';
+                assemblyGuideSection.scrollIntoView({ behavior: 'smooth' });
+                listeningText.innerText = "Vocal Assistant: Ready";
+                startGuideBtn.disabled = false;
+                startGuideBtn.innerText = "Start Assembly Guide";
+                alert("Instructions generated successfully! Scroll down to see them.");
+            } catch (err) {
+                console.error("Error fetching steps:", err);
+                listeningText.innerText = "Error generating instructions.";
+                startGuideBtn.disabled = false;
+                startGuideBtn.innerText = "Start Assembly Guide";
+                alert("Failed to connect to backend to generate instructions. Error: " + err.message);
+            }
+        }
+
+        function renderSteps() {
+            stepList.innerHTML = '';
+            assemblySteps.forEach((step, index) => {
+                const li = document.createElement('li');
+                li.className = `step-item ${index === currentStepIndex ? 'active' : ''}`;
+                li.innerHTML = `
+                    <div class="step-number">${index + 1}</div>
+                    <div class="step-text">${step}</div>
+                `;
+                stepList.appendChild(li);
+            });
+        }
+
+        function speakStep() {
+            if (currentStepIndex < assemblySteps.length) {
+                console.log("Speaking Step:", assemblySteps[currentStepIndex]);
+                
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(assemblySteps[currentStepIndex]);
+                
+                // Ensure voices are loaded (specifically for Chrome)
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    // Try to find a nice English voice
+                    utterance.voice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB')) || voices[0];
+                }
+
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                
+                // Error handling for speech
+                utterance.onerror = (e) => console.error("SpeechSynthesis Error:", e);
+                
+                window.speechSynthesis.speak(utterance);
+                renderSteps(); // Update UI highlighting
+            } else {
+                const utterance = new SpeechSynthesisUtterance("Assembly complete. All pieces are in place.");
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function testVoice() {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance("Vocal Assistant is online. Can you hear me?");
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                utterance.voice = voices.find(v => v.lang.includes('en-US')) || voices[0];
+            }
+            window.speechSynthesis.speak(utterance);
+            alert("Sent test speech to browser. If you didn't hear anything, check your volume or browser tab mute status.");
+        }
+
+        function startListening() {
+            if (isListening) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                console.warn("Speech recognition not supported.");
+                listeningText.innerText = "Vocal Assistant: Unsupported Browser";
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                listeningIndicator.classList.add('active');
+                listeningText.innerText = 'Vocal Assistant: Listening for "Next"...';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                console.log("Speech heard:", transcript);
+                
+                // Prevent self-triggering: Ignore recognition if the browser is currently speaking
+                if (window.speechSynthesis.speaking) {
+                    console.log("Ignored because assistant is currently speaking.");
+                    return;
+                }
+
+                if (transcript.includes("next")) {
+                    if (currentStepIndex < assemblySteps.length - 1) {
+                        currentStepIndex++;
+                        speakStep();
+                    } else if (currentStepIndex === assemblySteps.length - 1) {
+                        currentStepIndex++; // End state
+                        speakStep();
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech Recognition Error:", event.error);
+                if (event.error === 'not-allowed') {
+                    alert("Microphone access was denied. Please enable it to use the vocal assistant.");
+                }
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                listeningIndicator.classList.remove('active');
+                // Auto-restart if we haven't finished all steps
+                if (currentStepIndex <= assemblySteps.length) {
+                    setTimeout(() => { if (!isListening) recognition.start(); }, 1000);
+                } else {
+                    listeningText.innerText = 'Vocal Assistant: Offline';
+                }
+            };
+
+            recognition.start();
+        }
+
+        startGuideBtn.addEventListener('click', () => {
+            if (assemblySteps.length === 0) {
+                alert("Instructions are not ready yet. Please wait for them to generate or reassemble the puzzle.");
+                return;
+            }
+            currentStepIndex = 0;
+            renderSteps();
+            speakStep();
+            startListening();
+            startGuideBtn.innerText = "Restart Vocal Guide";
         });
     </script>
 </body>
