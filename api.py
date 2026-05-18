@@ -209,8 +209,8 @@ async def analyze_image(file: UploadFile = File(...)):
         frame = np.array(image)
         img_w, img_h = image.size
 
-        # FastSAM segmentation
-        results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.6, iou=0.45, verbose=False)
+        # FastSAM segmentation (fine-tuned to balance sensitivity and overlapping)
+        results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.65, iou=0.35, verbose=False)
 
         response_data = []
         if results and len(results) > 0 and results[0].masks is not None:
@@ -222,8 +222,8 @@ async def analyze_image(file: UploadFile = File(...)):
                 if x2 <= x1 or y2 <= y1:
                     continue
                 
-                # Filter out small noise artifacts
-                if (x2 - x1) < 20 or (y2 - y1) < 20:
+                # Filter out small noise artifacts (slightly relaxed threshold)
+                if (x2 - x1) < 25 or (y2 - y1) < 25:
                     continue
 
                 crop = image.crop((x1, y1, x2, y2))
@@ -504,13 +504,13 @@ async def websocket_endpoint(websocket: WebSocket):
             image_data = base64.b64decode(data.split(",")[1])
             image = Image.open(io.BytesIO(image_data)).convert("RGB")
             frame = np.array(image)
-            results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.6, iou=0.45, verbose=False)
+            results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.60, iou=0.30, verbose=False)
             response_data = []
             if results and len(results) > 0 and results[0].masks is not None:
                 boxes = results[0].boxes.xyxy.cpu().numpy()
                 for idx, box in enumerate(boxes):
                     x1, y1, x2, y2 = map(int, box)
-                    if x2 <= x1 or y2 <= y1 or (x2 - x1) < 20 or (y2 - y1) < 20: continue
+                    if x2 <= x1 or y2 <= y1 or (x2 - x1) < 25 or (y2 - y1) < 25: continue
                     crop = image.crop((x1, y1, x2, y2))
                     inputs = processor(images=crop, return_tensors="pt").to(device)
                     with torch.no_grad(): outputs = dino_model(**inputs)

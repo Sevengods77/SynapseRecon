@@ -382,6 +382,7 @@
             </p>
             <div style="display: flex; gap: 10px;">
                 <button onclick="testVoice()" class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 12px; padding: 5px 12px;">Test Voice</button>
+                <button onclick="stopVoice()" class="btn" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.5); font-size: 12px; padding: 5px 12px; color: #fca5a5;">Stop Voice</button>
                 <button id="startGuideBtn" class="btn" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">Start Assembly Guide</button>
             </div>
         </div>
@@ -625,6 +626,7 @@
         let assemblySteps = [];
         let recognition = null;
         let isListening = false;
+        let shouldListen = false;
 
         const assemblyGuideSection = document.getElementById('assemblyGuideSection');
         const startGuideBtn = document.getElementById('startGuideBtn');
@@ -723,6 +725,16 @@
             alert("Sent test speech to browser. If you didn't hear anything, check your volume or browser tab mute status.");
         }
 
+        function stopVoice() {
+            shouldListen = false;
+            window.speechSynthesis.cancel();
+            if (recognition) recognition.stop();
+            isListening = false;
+            listeningIndicator.classList.remove('active');
+            listeningText.innerText = 'Vocal Assistant: Stopped';
+            startGuideBtn.innerText = "Resume / Start Guide";
+        }
+
         function startListening() {
             if (isListening) return;
 
@@ -735,7 +747,7 @@
 
             recognition = new SpeechRecognition();
             recognition.continuous = true;
-            recognition.interimResults = false;
+            recognition.interimResults = true; // Enabled interim results for instant recognition
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
@@ -745,7 +757,10 @@
             };
 
             recognition.onresult = (event) => {
-                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript.toLowerCase() + ' ';
+                }
                 console.log("Speech heard:", transcript);
                 
                 // Prevent self-triggering: Ignore recognition if the browser is currently speaking
@@ -754,14 +769,18 @@
                     return;
                 }
 
-                if (transcript.includes("next")) {
-                    if (currentStepIndex < assemblySteps.length - 1) {
+                if (transcript.match(/\b(next|continue|go on|forward|move on|yep|yes|ok)\b/i)) {
+                    if (currentStepIndex < assemblySteps.length) {
                         currentStepIndex++;
                         speakStep();
-                    } else if (currentStepIndex === assemblySteps.length - 1) {
-                        currentStepIndex++; // End state
+                    }
+                } else if (transcript.match(/\b(previous|back|go back|last step)\b/i)) {
+                    if (currentStepIndex > 0) {
+                        currentStepIndex--;
                         speakStep();
                     }
+                } else if (transcript.match(/\b(repeat|say that again|pardon|what)\b/i)) {
+                    speakStep();
                 }
             };
 
@@ -775,11 +794,12 @@
             recognition.onend = () => {
                 isListening = false;
                 listeningIndicator.classList.remove('active');
-                // Auto-restart if we haven't finished all steps
-                if (currentStepIndex <= assemblySteps.length) {
-                    setTimeout(() => { if (!isListening) recognition.start(); }, 1000);
+                if (shouldListen && currentStepIndex < assemblySteps.length) {
+                    setTimeout(() => { if (shouldListen && !isListening) recognition.start(); }, 1000);
+                } else if (!shouldListen) {
+                    listeningText.innerText = 'Vocal Assistant: Stopped';
                 } else {
-                    listeningText.innerText = 'Vocal Assistant: Offline';
+                    listeningText.innerText = 'Vocal Assistant: Finished';
                 }
             };
 
@@ -861,7 +881,9 @@
                 return;
             }
 
-            currentStepIndex = 0;
+            shouldListen = true;
+            if (currentStepIndex >= assemblySteps.length) currentStepIndex = 0; // Restart if finished
+
             renderSteps();
             speakStep();
             startListening();
