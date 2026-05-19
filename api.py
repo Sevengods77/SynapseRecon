@@ -262,36 +262,79 @@ async def analyze_image(file: UploadFile = File(...)):
             best_scale = max(2, round(math.sqrt(num_pieces))) if num_pieces > 0 else 3
             print(f"  Detected {num_pieces} fragments. Forcing grid matching to {best_scale}x{best_scale}.")
 
+            # Extract features for all pieces
+            all_features = []
+            piece_boxes = []
             for idx, box in enumerate(filtered_boxes):
                 x1, y1, x2, y2 = box
                 crop = image.crop((x1, y1, x2, y2))
-
-                # DINOv2 feature extraction
                 inputs = processor(images=crop, return_tensors="pt").to(device)
                 with torch.no_grad():
                     outputs = dino_model(**inputs)
                 features = outputs.pooler_output.squeeze().cpu().numpy().tolist()
-
-                # ChromaDB query (forced to the best_scale grid)
-                matched_id = "Unknown"
-                match_distance = None
+                all_features.append(features)
+                piece_boxes.append((x1, y1, x2, y2))
+                
+            # Perform optimal 1-to-1 Bipartite Matching (Linear Sum Assignment)
+            matched_ids = ["Unknown"] * num_pieces
+            match_distances = [None] * num_pieces
+            
+            if num_pieces > 0:
                 try:
-                    db_result = collection.query(
-                        query_embeddings=[features], 
-                        n_results=1,
+                    from scipy.optimize import linear_sum_assignment
+                    db_results = collection.query(
+                        query_embeddings=all_features,
+                        n_results=best_scale * best_scale, # Fetch all grid cells for this scale
                         where={"scale": str(best_scale)}
                     )
-                    if db_result and db_result.get('ids') and len(db_result['ids'][0]) > 0:
-                        matched_id = db_result['ids'][0][0]
-                        match_distance = round(db_result['distances'][0][0], 4) if db_result.get('distances') else None
-                except Exception as qe:
-                    print(f"  ChromaDB query error: {qe}")
-                    matched_id = "Error"
+                    
+                    # Collect all unique cell IDs
+                    unique_cell_ids = []
+                    for ids_list in db_results['ids']:
+                        for cid in ids_list:
+                            if cid not in unique_cell_ids:
+                                unique_cell_ids.append(cid)
+                                
+                    # Build Cost Matrix (rows = pieces, cols = unique grid cells)
+                    cost_matrix = np.full((num_pieces, len(unique_cell_ids)), 1000.0)
+                    for i in range(num_pieces):
+                        dists = db_results['distances'][i]
+                        ids = db_results['ids'][i]
+                        for j, cid in enumerate(ids):
+                            col_idx = unique_cell_ids.index(cid)
+                            cost_matrix[i, col_idx] = dists[j]
+                            
+                    # Solve assignment to guarantee no two pieces are assigned to the same grid cell
+                    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+                    for i, r in enumerate(row_ind):
+                        c = col_ind[i]
+                        matched_ids[r] = unique_cell_ids[c]
+                        match_distances[r] = round(cost_matrix[r, c], 4)
+                except Exception as e:
+                    print(f"Bipartite matching failed: {e}. Falling back to greedy assignment.")
+                    used_ids = set()
+                    for i in range(num_pieces):
+                        try:
+                            db_result = collection.query(
+                                query_embeddings=[all_features[i]], 
+                                n_results=best_scale * best_scale,
+                                where={"scale": str(best_scale)}
+                            )
+                            for j, cid in enumerate(db_result['ids'][0]):
+                                if cid not in used_ids:
+                                    matched_ids[i] = cid
+                                    match_distances[i] = round(db_result['distances'][0][j], 4)
+                                    used_ids.add(cid)
+                                    break
+                        except Exception as qe:
+                            matched_ids[i] = "Error"
 
+            for idx in range(num_pieces):
+                x1, y1, x2, y2 = piece_boxes[idx]
                 piece_data = {
                     "piece_index": idx + 1,
-                    "id": matched_id,
-                    "match_distance": match_distance,
+                    "id": matched_ids[idx],
+                    "match_distance": match_distances[idx],
                     "box": [x1, y1, x2, y2],
                 }
                 response_data.append(piece_data)
@@ -299,8 +342,8 @@ async def analyze_image(file: UploadFile = File(...)):
                 # Store in pipeline_state for Step 3
                 pipeline_state["detections"].append({
                     "piece_index": idx + 1,
-                    "matched_grid_id": matched_id,
-                    "match_distance": match_distance,
+                    "matched_grid_id": matched_ids[idx],
+                    "match_distance": match_distances[idx],
                     "current_box": [x1, y1, x2, y2],
                     "img_w": img_w,
                     "img_h": img_h,
