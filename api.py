@@ -145,7 +145,7 @@ async def ingest_master(file: UploadFile = File(...)):
         img_width, img_height = image.size
 
         # Build a multi-scale spatial pyramid — supports any number of puzzle pieces
-        grid_scales = [4, 6, 8, 12]
+        grid_scales = [2, 3, 4, 5, 6, 8, 10, 12]
 
         ingested_count = 0
 
@@ -209,23 +209,61 @@ async def analyze_image(file: UploadFile = File(...)):
         frame = np.array(image)
         img_w, img_h = image.size
 
-        # FastSAM segmentation (fine-tuned to balance sensitivity and overlapping)
-        results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.65, iou=0.35, verbose=False)
+        # FastSAM segmentation (fine-tuned to catch full pieces instead of just internal objects)
+        results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.35, iou=0.5, verbose=False)
 
         response_data = []
         if results and len(results) > 0 and results[0].masks is not None:
             boxes = results[0].boxes.xyxy.cpu().numpy()
-
-            for idx, box in enumerate(boxes):
+            
+            # Apply NMS (Non-Maximum Suppression) to remove nested/duplicate boxes
+            valid_boxes = []
+            img_area = img_w * img_h
+            for box in boxes:
                 x1, y1, x2, y2 = map(int, box)
+                box_w = x2 - x1
+                box_h = y2 - y1
+                box_area = box_w * box_h
+                # Filter small noise AND filter giant background masks (>80% of image area)
+                if x2 > x1 and y2 > y1 and box_w >= 25 and box_h >= 25:
+                    if box_area < 0.8 * img_area:
+                        valid_boxes.append((x1, y1, x2, y2))
+                    
+            # Spatial Box Merging (Fuses adjacent/overlapping split bounding boxes into one full piece)
+            def boxes_intersect_or_close(b1, b2, threshold=20):
+                e_b1 = (b1[0]-threshold, b1[1]-threshold, b1[2]+threshold, b1[3]+threshold)
+                e_b2 = (b2[0]-threshold, b2[1]-threshold, b2[2]+threshold, b2[3]+threshold)
+                return not (e_b1[2] < e_b2[0] or e_b1[0] > e_b2[2] or e_b1[3] < e_b2[1] or e_b1[1] > e_b2[3])
 
-                if x2 <= x1 or y2 <= y1:
-                    continue
+            merged = True
+            while merged:
+                merged = False
+                new_boxes = []
+                while len(valid_boxes) > 0:
+                    base_box = valid_boxes.pop(0)
+                    to_merge = []
+                    for i in range(len(valid_boxes)-1, -1, -1):
+                        if boxes_intersect_or_close(base_box, valid_boxes[i], threshold=20):
+                            to_merge.append(valid_boxes.pop(i))
+                    if to_merge:
+                        all_x1 = [base_box[0]] + [b[0] for b in to_merge]
+                        all_y1 = [base_box[1]] + [b[1] for b in to_merge]
+                        all_x2 = [base_box[2]] + [b[2] for b in to_merge]
+                        all_y2 = [base_box[3]] + [b[3] for b in to_merge]
+                        base_box = (min(all_x1), min(all_y1), max(all_x2), max(all_y2))
+                        merged = True
+                    new_boxes.append(base_box)
+                valid_boxes = new_boxes
                 
-                # Filter out small noise artifacts (slightly relaxed threshold)
-                if (x2 - x1) < 25 or (y2 - y1) < 25:
-                    continue
+            filtered_boxes = valid_boxes
 
+            import math
+            num_pieces = len(filtered_boxes)
+            best_scale = max(2, round(math.sqrt(num_pieces))) if num_pieces > 0 else 3
+            print(f"  Detected {num_pieces} fragments. Forcing grid matching to {best_scale}x{best_scale}.")
+
+            for idx, box in enumerate(filtered_boxes):
+                x1, y1, x2, y2 = box
                 crop = image.crop((x1, y1, x2, y2))
 
                 # DINOv2 feature extraction
@@ -234,11 +272,15 @@ async def analyze_image(file: UploadFile = File(...)):
                     outputs = dino_model(**inputs)
                 features = outputs.pooler_output.squeeze().cpu().numpy().tolist()
 
-                # ChromaDB query
+                # ChromaDB query (forced to the best_scale grid)
                 matched_id = "Unknown"
                 match_distance = None
                 try:
-                    db_result = collection.query(query_embeddings=[features], n_results=1)
+                    db_result = collection.query(
+                        query_embeddings=[features], 
+                        n_results=1,
+                        where={"scale": str(best_scale)}
+                    )
                     if db_result and db_result.get('ids') and len(db_result['ids'][0]) > 0:
                         matched_id = db_result['ids'][0][0]
                         match_distance = round(db_result['distances'][0][0], 4) if db_result.get('distances') else None
@@ -294,6 +336,19 @@ async def reassemble(mode: str = Form("celeba")):
     try:
         image = Image.open(io.BytesIO(pipeline_state["image_bytes"])).convert("RGB")
         detections = pipeline_state["detections"]
+        
+        # Get Master Image Dimensions from DB
+        master_width, master_height = 800, 800 # defaults
+        try:
+            db_any = collection.get(limit=1)
+            if db_any and db_any.get('metadatas') and len(db_any['metadatas']) > 0:
+                meta = db_any['metadatas'][0]
+                mx1, my1, mx2, my2 = map(float, meta['box'].split(','))
+                scale = int(meta['scale'])
+                master_width = int((mx2 - mx1) * scale)
+                master_height = int((my2 - my1) * scale)
+        except Exception as e:
+            print("Could not infer master size from DB:", e)
 
         # DiffAssemble expects a fixed 6x6 grid of 32x32 patches
         patch_size = 32
@@ -329,14 +384,14 @@ async def reassemble(mode: str = Form("celeba")):
 
         predicted_positions = imgs[-1]  # shape (36, 2) for 6x6
 
-        # Map predicted normalized positions back to pixel coordinates
+        # Map predicted normalized positions back to pixel coordinates scaled to master image
         diff_results = []
         for p in range(predicted_positions.shape[0]):
             x_norm = predicted_positions[p, 0].item()
             y_norm = predicted_positions[p, 1].item()
-            target_x = int((x_norm + 1) * width / 2) - patch_size // 2
-            target_y = int((y_norm + 1) * height / 2) - patch_size // 2
-            diff_results.append({"patch_idx": p, "target_x": target_x, "target_y": target_y})
+            da_tx = int((x_norm + 1) * master_width / 2)
+            da_ty = int((y_norm + 1) * master_height / 2)
+            diff_results.append({"patch_idx": p, "target_x": da_tx, "target_y": da_ty})
 
         # ─── Merge Step 2 detections with Step 3 DiffAssemble predictions ───
         unified_results = []
@@ -350,30 +405,35 @@ async def reassemble(mode: str = Form("celeba")):
             cx = (current_box[0] + current_box[2]) / 2
             cy = (current_box[1] + current_box[3]) / 2
 
-            # Parse Grid ID to find row/col (e.g., "Grid_6x6_2_3" → row=2, col=3)
+            # Parse Grid ID and fetch exact master coordinates from DB
             target_x, target_y, rotation_deg = None, None, 0
+            target_w, target_h = None, None
             direction_hint = "Unknown"
-            try:
-                parts = matched_id.split("_")  # ["Grid", "6x6", "2", "3"]
-                if len(parts) == 4:
-                    scale = int(parts[1].split("x")[0])
-                    grid_row = int(parts[2])
-                    grid_col = int(parts[3])
+            
+            if matched_id != "Unknown":
+                try:
+                    db_res = collection.get(ids=[matched_id])
+                    if db_res and db_res.get('metadatas') and len(db_res['metadatas']) > 0:
+                        meta = db_res['metadatas'][0]
+                        mx1, my1, mx2, my2 = map(float, meta['box'].split(','))
+                        
+                        target_x = int((mx1 + mx2) / 2)
+                        target_y = int((my1 + my2) / 2)
+                        target_w = int(mx2 - mx1)
+                        target_h = int(my2 - my1)
+                        
+                        grid_row = int(meta['row'])
+                        grid_col = int(meta['col'])
+                        scale = int(meta['scale'])
 
-                    # Target position in the master image (center of matched grid cell)
-                    cell_w = img_w / scale
-                    cell_h = img_h / scale
-                    target_x = int(grid_col * cell_w + cell_w / 2)
-                    target_y = int(grid_row * cell_h + cell_h / 2)
-
-                    # Human-readable direction hint for VLM (Phase 4)
-                    start_h = "left" if cx < img_w / 3 else "right" if cx > 2 * img_w / 3 else "center"
-                    start_v = "top" if cy < img_h / 3 else "bottom" if cy > 2 * img_h / 3 else "middle"
-                    start_pos = "center" if start_h == "center" and start_v == "middle" else f"{start_v} {start_h}"
-                    
-                    direction_hint = f"Currently sitting in the {start_pos} area of the workspace. Needs to be placed in row {grid_row + 1} (out of {scale}) and column {grid_col + 1} (out of {scale}) of the final image."
-            except Exception:
-                pass
+                        # Human-readable direction hint for VLM (Phase 4)
+                        start_h = "left" if cx < img_w / 3 else "right" if cx > 2 * img_w / 3 else "center"
+                        start_v = "top" if cy < img_h / 3 else "bottom" if cy > 2 * img_h / 3 else "middle"
+                        start_pos = "center" if start_h == "center" and start_v == "middle" else f"{start_v} {start_h}"
+                        
+                        direction_hint = f"Currently sitting in the {start_pos} area of the workspace. Needs to be placed in row {grid_row + 1} (out of {scale}) and column {grid_col + 1} (out of {scale}) of the final image."
+                except Exception as e:
+                    print(f"Error fetching exact target for {matched_id}: {e}")
 
             # Use DiffAssemble prediction if available for this patch index
             da = diff_results[i] if i < len(diff_results) else {}
@@ -389,14 +449,28 @@ async def reassemble(mode: str = Form("celeba")):
                 "target_y": target_y if target_y is not None else da.get("target_y"),
                 "diffassemble_target_x": da.get("target_x"),
                 "diffassemble_target_y": da.get("target_y"),
+                "target_w": target_w if target_w is not None else int(master_width / 6),
+                "target_h": target_h if target_h is not None else int(master_height / 6),
                 "rotation_deg": rotation_deg,
                 "direction_hint": direction_hint,
             })
 
         print(f"  Unified {len(unified_results)} pieces for Phase 4.")
+        
+        # Determine actual grid scale used for drawing
+        used_scale = 3
+        if unified_results and unified_results[0].get("matched_grid_id", "Unknown") != "Unknown":
+            try:
+                used_scale = int(unified_results[0]["matched_grid_id"].split("_")[1].split("x")[0])
+            except:
+                pass
+                
         return {
             "success": True,
             "mode_used": mode,
+            "master_width": master_width,
+            "master_height": master_height,
+            "grid_scale": used_scale,
             "results": unified_results
         }
 
@@ -422,6 +496,7 @@ def generate_steps(data: Phase3Data):
     
     try:
         import requests
+        import re
         api_key = os.environ.get("GEMINI_API_KEY")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         payload = {
@@ -437,13 +512,16 @@ def generate_steps(data: Phase3Data):
         resp.raise_for_status()
         text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
         
-        # Cleanup JSON formatting
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        
-        steps = json.loads(text.strip())
+        # Robust JSON formatting extraction
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        if match:
+            steps = json.loads(match.group(0))
+        else:
+            if "```" in text:
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            steps = json.loads(text.strip())
         
         if isinstance(steps, dict):
             for v in steps.values():

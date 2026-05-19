@@ -373,6 +373,13 @@
         </table>
     </div>
 
+    <div class="pipeline-section" id="reassembledOutputSection" style="display: none; margin-bottom: 20px; border: 2px solid #8b5cf6;">
+        <h2>Reassembled Output Preview</h2>
+        <div style="display: flex; justify-content: center; background: #000; border-radius: 8px; padding: 10px; overflow: hidden;">
+            <canvas id="reassembledCanvas" style="max-width: 100%; height: auto; border-radius: 8px;"></canvas>
+        </div>
+    </div>
+
     <div class="pipeline-section" id="assemblyGuideSection" style="margin-bottom: 20px; border: 2px solid #4facfe;">
         <h2>Step 4: Audio Assembly Guide</h2>
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px;">
@@ -608,6 +615,9 @@
                 resultTableWrap.classList.add('visible');
                 lastResults = result.results;
 
+                // Draw reassembled image
+                drawReassembledPuzzle(result.results, result.master_width, result.master_height, result.grid_scale);
+
                 // Trigger Step 4: Instruction Generation
                 console.log("Automatically triggering fetchAssemblySteps...");
                 fetchAssemblySteps(result.results);
@@ -620,6 +630,83 @@
                 reassembleBtn.disabled = false;
             }
         });
+
+        function drawReassembledPuzzle(results, master_width, master_height, grid_scale) {
+            const section = document.getElementById('reassembledOutputSection');
+            const rCanvas = document.getElementById('reassembledCanvas');
+            const rCtx = rCanvas.getContext('2d');
+            
+            // Try to match the original image size, or fallback to current image size
+            rCanvas.width = master_width || (masterImage ? masterImage.width : (currentImage ? currentImage.width : 800));
+            rCanvas.height = master_height || (masterImage ? masterImage.height : (currentImage ? currentImage.height : 800));
+            
+            // Clear canvas with a dark background matching the theme
+            rCtx.fillStyle = '#0f172a';
+            rCtx.fillRect(0, 0, rCanvas.width, rCanvas.height);
+            
+            // Draw background grid lines
+            const scale = grid_scale || 3;
+            rCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            rCtx.lineWidth = 1;
+            for (let i = 1; i < scale; i++) {
+                // Vertical lines
+                rCtx.beginPath();
+                rCtx.moveTo(i * rCanvas.width / scale, 0);
+                rCtx.lineTo(i * rCanvas.width / scale, rCanvas.height);
+                rCtx.stroke();
+                // Horizontal lines
+                rCtx.beginPath();
+                rCtx.moveTo(0, i * rCanvas.height / scale);
+                rCtx.lineTo(rCanvas.width, i * rCanvas.height / scale);
+                rCtx.stroke();
+            }
+
+            results.forEach(piece => {
+                const [x1, y1, x2, y2] = piece.current_box;
+                const pw = x2 - x1;
+                const ph = y2 - y1;
+                
+                let tx = piece.target_x;
+                let ty = piece.target_y;
+                let tw = piece.target_w || pw; // use target cell width, fallback to box width
+                let th = piece.target_h || ph; // use target cell height, fallback to box height
+                if (tx === null || ty === null) return;
+                
+                rCtx.save();
+                rCtx.translate(tx, ty);
+                if (piece.rotation_deg) {
+                    rCtx.rotate((piece.rotation_deg * Math.PI) / 180);
+                }
+                
+                // Draw piece stretched/sized to perfectly fill the target grid slot
+                if (currentImage) {
+                    rCtx.drawImage(
+                        currentImage,
+                        x1, y1, pw, ph,
+                        -tw / 2, -th / 2, tw, th
+                    );
+                }
+                
+                // Optional: Draw a subtle border around the placed piece
+                rCtx.strokeStyle = 'rgba(139, 92, 246, 0.8)';
+                rCtx.lineWidth = 2;
+                rCtx.strokeRect(-tw / 2, -th / 2, tw, th);
+                
+                // Draw piece number to match VLM instructions
+                rCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                const text = `#${piece.piece_index}`;
+                rCtx.font = 'bold 14px Arial';
+                const textWidth = rCtx.measureText(text).width;
+                rCtx.fillRect(-tw / 2, -th / 2, textWidth + 10, 24);
+                
+                rCtx.fillStyle = '#00ffea';
+                rCtx.fillText(text, -tw / 2 + 5, -th / 2 + 16);
+                
+                rCtx.restore();
+            });
+            
+            section.style.display = 'block';
+        }
 
         // ── Step 4 & 5: Assembly Guide Logic ───────────────────────
         let currentStepIndex = 0;
