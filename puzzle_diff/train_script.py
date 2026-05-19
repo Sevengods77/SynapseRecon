@@ -142,13 +142,21 @@ def main(args):
     print("Model Architecture:")
     print(model)
 
-    # Checkpoint
+    # Checkpoint - best metric
     checkpoint_callback = ModelCheckpoint(
         dirpath=f"checkpoints/{args.dataset}_{args.puzzle_sizes}",
-        filename="{epoch}-{overall_acc:.4f}",
+        filename="{epoch}-{overall_acc:.4f}-{overall__piece_acc:.4f}",
         save_top_k=5,
-        monitor="overall_acc",
+        monitor="overall__piece_acc",
         mode="max",
+    )
+
+    # Checkpoint - every 3 epochs
+    periodic_checkpoint = ModelCheckpoint(
+        dirpath=f"checkpoints/{args.dataset}_{args.puzzle_sizes}/periodic",
+        filename="{epoch}-periodic",
+        every_n_epochs=3,
+        save_top_k=-1,
     )
 
     # Trainer
@@ -157,7 +165,7 @@ def main(args):
         devices="auto",
         max_epochs=args.max_epochs,
         logger=wandb_logger,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, periodic_checkpoint],
         accumulate_grad_batches=args.acc_grad if args.acc_grad > 0 else 1,
         precision="16-mixed" if torch.cuda.is_available() else "32-true",
     )

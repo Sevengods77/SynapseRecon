@@ -1117,6 +1117,7 @@ class GNN_Diffusion(pl.LightningModule):
                 self.metrics[f"{tuple(n_patches)}_nImages"].update(1)
                 self.metrics["overall_nImages"].update(1)
                 self.metrics[f"{tuple(n_patches)}__piece_acc"].update(piece_accuracy)
+                self.metrics["overall__piece_acc"].update(piece_accuracy)
                 if correct:
                     # if (assignement[:, 0] == assignement[:, 1]).all():
                     self.metrics[f"{tuple(n_patches)}_acc"].update(1)
@@ -1215,6 +1216,7 @@ class GNN_Diffusion(pl.LightningModule):
         height = patch_size * n_patches[0]
         width = patch_size * n_patches[1]
         new_image = Image.new("RGBA", (width, height))
+        pos = torch.nan_to_num(pos)
         for p in range(patches.shape[0]):
             patch = patches[p, :]
             patch = Image.fromarray(

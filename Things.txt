@@ -1,1 +1,1 @@
-d:\Projects\Major Project\DiffAssemble\checkpoints\celeba_[6]\epoch=4-overall_acc=0.0147.ckpt
+D:\Projects\Major Project\DiffAssemble\checkpoints\celeba_[6]\epoch=69-overall_acc=0.6190-overall__piece_acc=0.9535.ckpt
