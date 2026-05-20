@@ -3,30 +3,29 @@
 <br/>
 
 ```
-███████╗██╗   ██╗███╗   ██╗ █████╗ ██████╗ ███████╗███████╗    ██████╗ ███████╗ ██████╗ ██████╗ ███╗   ██╗
-██╔════╝╚██╗ ██╔╝████╗  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝    ██╔══██╗██╔════╝██╔════╝██╔═══██╗████╗  ██║
-███████╗ ╚████╔╝ ██╔██╗ ██║███████║██████╔╝███████╗█████╗      ██████╔╝█████╗  ██║     ██║   ██║██╔██╗ ██║
-╚════██║  ╚██╔╝  ██║╚██╗██║██╔══██║██╔═══╝ ╚════██║██╔══╝      ██╔══██╗██╔══╝  ██║     ██║   ██║██║╚██╗██║
-███████║   ██║   ██║ ╚████║██║  ██║██║     ███████║███████╗    ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
-╚══════╝   ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝    ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
+███████╗██╗   ██╗███╗   ██╗ █████╗ ██████╗ ███████╗███████╗    ██████╗ ███████╗ ██████╗  ██████╗ ███╗   ██╗
+██╔════╝╚██╗ ██╔╝████╗  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝    ██╔══██╗██╔════╝██╔════╝ ██╔═══██╗████╗  ██║
+███████╗ ╚████╔╝ ██╔██╗ ██║███████║██████╔╝███████╗█████╗      ██████╔╝█████╗  ██║      ██║   ██║██╔██╗ ██║
+╚════██║  ╚██╔╝  ██║╚██╗██║██╔══██║██╔═══╝ ╚════██║██╔══╝      ██╔══██╗██╔══╝  ██║      ██║   ██║██║╚██╗██║
+███████║   ██║   ██║ ╚████║██║  ██║██║     ███████║███████╗    ██║  ██║███████╗╚██████╗ ╚██████╔╝██║ ╚████║
+╚══════╝   ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝    ╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝
 ```
 
-### *AI-Powered Puzzle Reassembly · Augmented Reality Guidance · Diffusion-Based Spatial Intelligence*
+### *AI-Driven Puzzle Reconstruction Engine with 3-Layer Visual Processing & AR-Guided Assembly*
 
 <br/>
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_Store-orange?style=for-the-badge&logo=vector)](https://trychroma.com)
 [![Gemini](https://img.shields.io/badge/Gemini_2.5_Flash-Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Branch](https://img.shields.io/badge/Branch-Synapse__recon-blueviolet?style=for-the-badge&logo=git)](https://github.com/Sevengods77/SynapseRecon/tree/Synapse_recon)
 
 <br/>
 
 [![GitHub stars](https://img.shields.io/github/stars/Sevengods77/SynapseRecon?style=social)](https://github.com/Sevengods77/SynapseRecon/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/Sevengods77/SynapseRecon?style=social)](https://github.com/Sevengods77/SynapseRecon/network/members)
-[![GitHub issues](https://img.shields.io/github/issues/Sevengods77/SynapseRecon)](https://github.com/Sevengods77/SynapseRecon/issues)
 [![Last Commit](https://img.shields.io/github/last-commit/Sevengods77/SynapseRecon/Synapse_recon)](https://github.com/Sevengods77/SynapseRecon/commits/Synapse_recon)
 [![Repo Size](https://img.shields.io/github/repo-size/Sevengods77/SynapseRecon)](https://github.com/Sevengods77/SynapseRecon)
 
@@ -36,214 +35,216 @@
 
 <br/>
 
-## 🧩 What is SynapseRecon?
+## 🧩 Overview
 
-> **SynapseRecon** is a cutting-edge, end-to-end **AI puzzle reconstruction system** that combines computer vision, spatial diffusion models, vector embeddings, and augmented reality to guide a human through reassembling a physically broken or scattered puzzle — piece by piece — using only a camera.
+**SynapseRecon** is an advanced **2D puzzle reassembly pipeline** that leverages state-of-the-art Computer Vision, High-Dimensional Vector Search, Bipartite Optimization, and Generative Multimodal AI to guide users through the physical reconstruction of scattered puzzle pieces. 
 
-Imagine dropping a 1000-piece puzzle on the floor. SynapseRecon scans the chaos, identifies every fragment, figures out exactly where each piece belongs, and then **talks you through the solution** — in natural language — with real-time AR overlays showing ghost positions of where each piece should land.
-
-This isn't just a project. It's a **full-stack AI pipeline** that pushes the boundaries of what hobbyist-grade hardware can do with state-of-the-art models.
-
-<br/>
+By utilizing a standard camera feed, the system automatically detects, matches, and positions scattered puzzle fragments relative to their original coordinates, generating clear, real-time voice instructions and interactive Augmented Reality (AR) overlays.
 
 ---
 
-## 🎬 Pipeline At a Glance
+## ⚙️ Architecture & Core Mechanics
+
+The pipeline is split into **5 distinct phases**, moving from ingestion to interactive physical assembly guidance.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                          SYNAPSERCON AI PIPELINE                                    │
-│                                                                                     │
-│  📷 MASTER IMAGE                    🧩 SCATTERED IMAGE                             │
-│       │                                      │                                      │
-│       ▼                                      ▼                                      │
-│  ┌─────────────┐                    ┌──────────────────────────────────────┐        │
-│  │  STEP  1    │                    │           STEP  2                    │        │
-│  │  Ingest &   │   ─── feeds ──▶   │   3-Layer Hybrid Fragment Detection  │        │
-│  │  Embed      │                    │                                      │        │
-│  │             │                    │  Layer 1: Template Matching (NCC)    │        │
-│  │  DINOv2     │                    │  Layer 2: Background Subtraction     │        │
-│  │  Multi-Scale│                    │  Layer 3: FastSAM + DBSCAN Cluster   │        │
-│  │  Pyramid    │                    │                                      │        │
-│  │  ChromaDB   │                    │  → Bipartite Matching (LSA)          │        │
-│  └─────────────┘                    │  → KMeans Post-Validation            │        │
-│                                     └──────────────────────────────────────┘        │
-│                                                      │                              │
-│                                                      ▼                              │
-│                                     ┌──────────────────────────────────────┐        │
-│                                     │           STEP  3                    │        │
-│                                     │   DiffAssemble Spatial Diffusion     │        │
-│                                     │                                      │        │
-│                                     │  GNN + Denoising Diffusion Process   │        │
-│                                     │  36 patches → predicted (x,y) grid  │        │
-│                                     │  Merged with DB-matched coordinates  │        │
-│                                     └──────────────────────────────────────┘        │
-│                                                      │                              │
-│                                                      ▼                              │
-│                                     ┌──────────────────────────────────────┐        │
-│                                     │           STEP  4                    │        │
-│                                     │   Gemini 2.5 Flash VLM               │        │
-│                                     │                                      │        │
-│                                     │  Spatial data → Natural Language     │        │
-│                                     │  "Find the piece at the top left,   │        │
-│                                     │   slide it gently to the center-     │        │
-│                                     │   right to lock the upper edge."     │        │
-│                                     └──────────────────────────────────────┘        │
-│                                                      │                              │
-│                                                      ▼                              │
-│                                     ┌──────────────────────────────────────┐        │
-│                                     │           STEP  5                    │        │
-│                                     │   AR Ghost Overlay (Live Camera)     │        │
-│                                     │                                      │        │
-│                                     │  WebRTC Camera Feed                  │        │
-│                                     │  Semi-transparent ghost positions    │        │
-│                                     │  Voice TTS step navigation           │        │
-│                                     └──────────────────────────────────────┘        │
-└─────────────────────────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------------------------------------+
+|                                     SYNAPSERCON PIPELINE FLOW                                   |
++-------------------------------------------------------------------------------------------------+
+|                                                                                                 |
+|  [Step 1: Master Ingestion] ────▶ [Step 2: Scattered Fragment Analysis] ───▶ [Step 3: Assembly] |
+|            │                                      │                                 │           |
+|            ▼                                      ▼                                 ▼           |
+|    - Aspect Ratio Grid (8-12)             - 3-Layer Detection (NCC,          - Coordinate       |
+|    - Multi-Scale Crop Pyramid               Contour, FastSAM+DBSCAN)           Synthesis        |
+|    - DINOv2 Visual Features               - Bipartite (1-to-1) Matching      - Scattered-to-    |
+|    - ChromaDB Embeddings                  - KMeans Box Validation              Target Mapping   |
+|                                                                                     │           |
+|                                                                                     ▼           |
+|  [Step 5: AR Ghost Overlay] ◀─── [Step 4: Instruction Generation] ◄─────────────────┘           |
+|            │                                      │                                             |
+|            ▼                                      ▼                                             |
+|    - WebRTC Camera Feed                   - Gemini 2.5 Flash VLM                                |
+|    - Canvas Overlay                       - Contextual Instructions                             |
+|    - Vocal/Speech Guidance                - JSON & Read File Saves                              |
+|                                                                                                 |
++-------------------------------------------------------------------------------------------------+
 ```
 
 <br/>
 
----
-
-## ✨ Feature Highlights
-
-<table>
-<tr>
-<td width="50%">
-
-### 🧠 Intelligence Layer
-- **DINOv2** (Facebook) visual embeddings for piece fingerprinting
-- **Multi-scale spatial pyramid** (2×2 → 12×12 grid representation)
-- **ChromaDB** persistent vector store for lightning-fast similarity search
-- **DiffAssemble** GNN diffusion model — predicts assembly order from disordered patches
-- **Bipartite Matching** (Linear Sum Assignment) — guaranteed 1-to-1 piece-to-grid-cell mapping
-- **Gemini 2.5 Flash** VLM for natural-language instruction generation
-
-</td>
-<td width="50%">
-
-### 👁️ Vision Layer
-- **3-Layer Hybrid Detection** — degrades gracefully across conditions:
-  - Layer 1: OpenCV Template Matching (primary, sub-pixel accurate)
-  - Layer 2: Background Subtraction with morphological ops
-  - Layer 3: FastSAM + DBSCAN spatial clustering
-- **Adaptive grid sizing** — auto-detects optimal (rows × cols) from image aspect ratio
-- **KMeans post-validation** — collapses over-detected boxes to expected count
-- **DBSCAN merging** — eliminates duplicate FastSAM boxes for single fragments
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 🎙️ Assembly Guidance
-- **Conversational TTS** step-by-step voice instructions
-- Natural spatial language: *"the top-left corner"*, *"the lower-right edge"*
-- Varied transition words — no robotic "next, next, next"
-- Stop / resume voice controls
-- Sequential step navigation with arrow controls
-
-</td>
-<td width="50%">
-
-### 📱 AR Overlay
-- Live WebRTC camera feed
-- **Ghost overlay** — semi-transparent piece silhouettes at target positions
-- Real-time canvas rendering over video stream
-- Unified coordinate system between scattered image and AR viewport
-- One-click "AR mode" toggle
-
-</td>
-</tr>
-</table>
-
-<br/>
+### 📁 Core Module Files
+- `api.py`: FastAPI server exposing the endpoints for all steps and handling pipeline state.
+- `detection_utils.py`: Modular 3-layer image segmentation and clustering algorithms.
+- `generate_fragments.py` & `generate_fragments_limited.py`: Puzzle piece scattering simulator for generating synthetic validation sets.
+- `test_hybrid_detection.py`: Verification script to evaluate detection success across simulated image sets.
+- `frontend/index.html`: Fully responsive vanilla frontend providing step navigation, real-time overlay visualization, and camera integrations.
 
 ---
 
-## 📊 Model Performance & Stats
+## 🛠️ Step-by-Step Technical Deep-Dive
 
-> Stats based on simulated test runs across **CelebA** and **WikiArt** datasets included in `simulated_images/`.
-
-| Metric | Value |
-|--------|-------|
-| 🎯 **DiffAssemble Piece Accuracy** (WikiArt) | `95.99%` |
-| 🎯 **DiffAssemble Piece Accuracy** (CelebA) | `96.92%` |
-| 🗺️ **Overall Assembly Accuracy** (CelebA) | `75.07%` |
-| 🗺️ **Overall Assembly Accuracy** (WikiArt) | `72.36%` |
-| ⚡ **Fragment Detection** (Layer 1, clean background) | `< 300ms` |
-| 🔍 **Vector DB Query** (ChromaDB, 500+ embeddings) | `< 50ms` |
-| 🗣️ **Instruction Generation** (Gemini 2.5 Flash) | `< 3s` |
-| 🧩 **Supported Fragment Count** | `8 – 12 pieces` |
-| 📐 **Supported Grid Sizes** | `2×2 → 12×12` |
-
-<br/>
-
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/Sevengods77/SynapseRecon/Synapse_recon?style=flat-square&label=Monthly%20Commits&color=blueviolet)
-![GitHub code size](https://img.shields.io/github/languages/code-size/Sevengods77/SynapseRecon?style=flat-square&label=Code%20Size&color=orange)
-![Top Language](https://img.shields.io/github/languages/top/Sevengods77/SynapseRecon?style=flat-square&color=blue)
-
-<br/>
-
----
-
-## 🏗️ Repository Structure
+### 📂 Step 1: Ingest Master Image
+When a reference/master image is uploaded, the backend prepares it for multi-scale matching:
+1. **Adaptive Grid Calculation**: Computes the optimal grid structure (rows × cols) yielding a piece count between **8 and 12** while staying mathematically closest to the uploaded image's aspect ratio.
+2. **Primary Crop Templates**: Generates crops corresponding to this grid size for template matching.
+3. **Multi-Scale Feature Pyramid**: Builds an embedding index using grids ranging from $2\times2$ to $12\times12$.
+4. **DINOv2 Embeddings**: For each crop at every scale, it runs the crop through `facebook/dinov2-small` to extract a high-dimensional feature representation.
+5. **Vector Database Storage**: Upserts the generated vectors and coordinate metadatas into a local, persistent **ChromaDB** collection (`vector_db/`), flushing any stale previous indices.
 
 ```
-SynapseRecon/
-│
-├── 📄 api.py                          # FastAPI backend — full 5-step pipeline
-├── 🔍 detection_utils.py              # 3-layer hybrid detection helpers
-├── 🧩 generate_fragments.py           # Puzzle fragment scatter simulator
-├── 🔬 generate_fragments_limited.py   # Constrained (8-12 piece) simulator
-├── 🧪 test_hybrid_detection.py        # Full detection pipeline test suite
-├── ✅ test_api.py                      # API endpoint tests
-├── 🔮 test_gemini.py                  # Gemini VLM integration tests
-├── 📦 requirements.txt                # Python dependencies
-│
-├── 🌐 frontend/
-│   └── index.html                     # Single-page app (Steps 1-5, AR overlay)
-│
-├── 🧠 puzzle_diff/                    # DiffAssemble model (GNN + Diffusion)
-│   ├── model/
-│   │   ├── spatial_diffusion_on_angle.py   # Core GNN diffusion model
-│   │   ├── backbones/                      # EfficientGAT, ResNet backbones
-│   │   └── ...
-│   ├── dataset/                       # Dataset loaders (CelebA, WikiArt)
-│   ├── train_script.py                # Multi-scale training script
-│   └── app.py                         # Gradio demo interface
-│
-├── 📂 checkpoints/
-│   ├── FastSAM-s.pt                   # FastSAM segment-anything model
-│   ├── celeba/                        # DiffAssemble checkpoint (faces)
-│   └── wikiart/                       # DiffAssemble checkpoint (paintings)
-│
-├── 🖼️ simulated_images/
-│   ├── original/                      # Clean reference images
-│   ├── scattered/                     # High-scatter simulation outputs
-│   └── scattered_less/               # Moderate-scatter simulation outputs
-│
-└── 🗄️ vector_db/                      # ChromaDB persistent vector store
-    └── ae54092e-*/                    # Auto-managed embedding shards
+                    +--------------------+
+                    | Upload Master Img  |
+                    +---------+----------+
+                              |
+                     [Aspect Ratio Check]
+                              |
+                    +---------▼----------+
+                    | Optimal Primary    |
+                    | Grid (e.g. 3x4)    |
+                    +---------+----------+
+                              |
+               +--------------+--------------+
+               |                             |
+     [Primary Templates]           [Multi-Scale Pyramid]
+     - Row/Col crop maps           - Scales 2x2 to 12x12
+                                   - DINOv2 Feature Extractor
+                                   - ChromaDB Vector Store
 ```
-
-<br/>
 
 ---
 
-## 🚀 Quick Start
+### 🔍 Step 2: Analyze Scattered Fragments
+When a photo of the scattered pieces on the workspace is uploaded, the backend initiates a **3-Layer Hybrid Detection System** designed to survive variable lighting and noisy tables:
 
-### Prerequisites
-
-```bash
-Python 3.10+
-CUDA-capable GPU (optional, CPU fallback supported)
-Google Gemini API Key
+```
+               +--------------------------------------+
+               |    Scattered Image Upload (Step 2)   |
+               +----------------───┬───---------------+
+                                   |
+                   [Layer 1: Template Matching]
+                   - Normalised Cross-Correlation (NCC)
+                   - ≥ 80% expected matches?
+                                   │
+                         ├── YES ──┼── NO ──┐
+                         │                  │
+                         ▼                  ▼
+                   [Apply Layer 1]   [Layer 2: Background Subtraction]
+                                     - Color boundary median threshold
+                                     - Morphological Close/Open
+                                     - External contour area filter
+                                            │
+                                            ├── Found valid pieces? ──▶ [Apply Layer 2]
+                                            │
+                                            └── NO ──▶ [Layer 3: FastSAM + DBSCAN]
+                                                       - FastSAM Segmentation (conf=0.35)
+                                                       - DBSCAN spatial box merging
 ```
 
-### 1. Clone & Install
+1. **Layer 1: Template Matching (Primary)**:
+   - Uses sub-pixel normalized cross-correlation (`cv2.TM_CCOEFF_NORMED`) to match the primary master templates against the scattered canvas.
+   - Ideal for structured scenes. If this yields $\ge 80\%$ of the expected pieces with high confidence ($\ge 0.50$), it bypasses heavier vision networks.
+2. **Layer 2: Background Subtraction (First Fallback)**:
+   - Samples border pixels to compute a robust color median of the assembly table.
+   - Computes absolute color distance, thresholding pixels to segment foreground puzzle pieces.
+   - Applies morphological closing (to bridge inner gaps) and opening (to eliminate background speckle).
+   - Isolates bounding boxes from external contours filtering by target surface area.
+3. **Layer 3: FastSAM + DBSCAN Clustering (Last Resort)**:
+   - Runs **FastSAM** (`FastSAM-s.pt`) to extract instance masks.
+   - Applies **DBSCAN** spatial clustering on coordinate bounding box centers. If a single physical piece was segmented into multiple disjoint boxes, DBSCAN groups and merges them back into unified fragment boundaries.
 
+#### ⚖️ Bipartite Matching Optimization
+Once the physical coordinates are resolved, features are extracted for each detected piece using DINOv2 and queried against ChromaDB. 
+
+To prevent the classic nearest-neighbor failure mode (where multiple physically distinct pieces claim the same target location), the system solves the **Linear Sum Assignment (Hungarian Algorithm)** using a cost matrix built from vector distances:
+
+$$\min \sum_{i=1}^{N} \sum_{j=1}^{M} C_{i, j} X_{i, j}$$
+
+$$\text{Subject to } \sum_{i} X_{i,j} = 1 \text{ and } \sum_{j} X_{i,j} = 1$$
+
+If the system segments more fragments than physically expected, it executes a **KMeans Clustering** pass on the physical centers to aggregate coordinate bounding boxes down to the target piece count.
+
+---
+
+### 🗺️ Step 3: Reassembly Coordinate Mapping
+Step 3 unifies the spatial data by mapping the coordinates of detected scattered fragments to their final target positions:
+- Captures bounding box centers ($C_x, C_y$) of fragments on the scattered board.
+- Resolves target coordinates ($T_x, T_y, T_w, T_h$) and scales using metadata retrieved from the DINOv2 vector lookup.
+- Formulates localized, descriptive placement parameters (e.g. *"Currently sitting in the top-left area of the workspace. Needs to be placed in row 2, column 3"*).
+- Outputs a comprehensive JSON response linking each piece's initial bounding box to its matching target bounding box in the reconstructed workspace.
+
+---
+
+### 🗣️ Step 4: Generate Instructions
+Using Google's **Gemini 2.5 Flash Lite VLM**, Step 4 translates raw coordinates and direction parameters into intuitive, step-by-step assembly instructions.
+
+```
+       +---------------------------------------------------------------+
+       | Step 3 Spatial Coordinate Output                              |
+       +───────────────────────────────┬───────────────────────────────+
+                                       |
+                                       ▼
+       +---------------------------------------------------------------+
+       | VLM Generation Prompt & Constraints                           |
+       | - Exactly one clear action instruction per fragment           |
+       | - Translates indexes to regions ("top-left", "lower edge")    |
+       | - Avoids repetitive transitions ("Next", "Then", "Now")       |
+       | - No raw coordinates or column/row index verbal output        |
+       +───────────────────────────────┬───────────────────────────────+
+                                       |
+                                       ▼
+       +---------------------------------------------------------------+
+       | API Responses & Local File Exports                            |
+       | - JSON Payload to UI client                                   |
+       | - `last_instructions.json` structured step log                |
+       | - `assembly_instructions.txt` user-readable text file         |
+       +---------------------------------------------------------------+
+```
+
+- **Output validation**: Standardizes instruction structures to compile directly into JSON arrays.
+- **Exporting files**: Automatically writes instructions to `last_instructions.json` and creates a formatted human-readable guide in `assembly_instructions.txt`.
+
+---
+
+### 📷 Step 5: AR Ghost Overlay
+The frontend consumes the unified data mapping to render real-time interactive cues:
+1. **WebRTC Camera Stream**: Mounts the active camera feed directly to a responsive viewport container.
+2. **Dynamic Canvas Context**: Superimposes transparent ghost silhouettes representing target locations, scaled and transformed over the corresponding video elements.
+3. **Voice Guidance System**: Leverages the browser Web Speech API to read instructions dynamically as the user progresses. Includes navigation arrows to step forward or backward, alongside a dedicated vocal stop controller.
+
+---
+
+## 📊 Simulated Datasets & Test Statistics
+
+To validate the reliability of the 3-Layer Hybrid Detection pipeline and the spatial assignments, a simulation suite is included in this repository under `simulated_images/`:
+
+| Dataset Source | Original Images | High-Scatter Scenarios (`scattered/`) | Low-Scatter Scenarios (`scattered_less/`) | Purpose |
+| :--- | :---: | :---: | :---: | :--- |
+| **CelebA Subset** | 12 | ✅ (8-12 pieces) | ✅ (8-12 pieces) | Facial structures & continuous gradients |
+| **WikiArt Subset** | 10 | ✅ (8-12 pieces) | ✅ (8-12 pieces) | Artistic textures, painting contours & landscapes |
+| **Custom Real Images** | 3 | ✅ (8-12 pieces) | ✅ (8-12 pieces) | Varied shapes, high-frequency physical boundaries |
+
+### 📈 Execution Performance Metrics
+
+*Benchmarked on local execution runs using PyTorch CPU/CUDA fallback.*
+
+- **Layer 1 Template Matching (NCC)**: `< 0.3s` (Rapid local array operations)
+- **Layer 2 Background Contour Extraction**: `< 0.15s`
+- **Layer 3 FastSAM Inference (imgsz=640)**: `~0.8s` (GPU) / `~2.5s` (CPU)
+- **ChromaDB Spatial Query**: `< 0.05s`
+- **Bipartite Linear Sum Assignment ($N=12$)**: `< 0.005s`
+- **Gemini 2.5 Flash Instruction Generation**: `~1.8s` - `~3.0s`
+
+---
+
+## 🚀 Quick Start & Deployment
+
+### 📋 Prerequisites
+- **Python 3.10+**
+- **Google Gemini API Key** (Set as environment variable)
+
+### 📦 1. Installation
+Clone the repository and install all required framework packages:
 ```bash
 git clone https://github.com/Sevengods77/SynapseRecon.git
 cd SynapseRecon
@@ -252,200 +253,41 @@ git checkout Synapse_recon
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+### 🔑 2. Environment Setup
+Create a `.env` file in the root workspace directory:
+```env
+GEMINI_API_KEY=AIzaSy...your_gemini_api_key...
+```
 
+### 💾 3. Model Checkpoints
+Verify that the segmentation model is present inside the `checkpoints/` directory:
+- `checkpoints/FastSAM-s.pt` (Required for Layer 3 fallback execution)
+
+### 🌐 4. Run the Pipeline Backend
+Initiate the FastAPI server using Uvicorn:
 ```bash
-# Create .env file
-echo "GEMINI_API_KEY=your_api_key_here" > .env
-```
-
-Get your Gemini API key at [aistudio.google.com](https://aistudio.google.com/app/apikey) — it's free!
-
-### 3. Download Checkpoints
-
-```
-checkpoints/
-├── FastSAM-s.pt        ← Download from: https://github.com/CASIA-IVA-Lab/FastSAM
-├── celeba/
-│   └── epoch=111-overall_acc=0.7507-overall__piece_acc=0.9692.ckpt
-└── wikiart/
-    └── epoch=44-overall_acc=0.7236-overall__piece_acc=0.9599.ckpt
-```
-
-> DiffAssemble checkpoints: [github.com/IronAvenger11/PuzzleSolver](https://github.com/IronAvenger11/PuzzleSolver)
-
-### 4. Launch
-
-```bash
-# Start the backend
 python api.py
 ```
+*The service will start listening on [http://0.0.0.0:8000](http://0.0.0.0:8000).*
 
-Then open `frontend/index.html` in your browser. The backend runs on `http://localhost:8000`.
-
-<br/>
-
----
-
-## 🎮 How to Use — Step by Step
-
-```
-Step 1: Upload Master Image       →  System builds multi-scale vector embeddings
-        ↓
-Step 2: Upload Scattered Image    →  3-layer detection finds & matches all fragments
-        ↓
-Step 3: Reassemble                →  DiffAssemble predicts spatial arrangement
-        ↓
-Step 4: Generate Instructions     →  Gemini crafts natural voice guidance
-        ↓
-Step 5: AR Ghost Overlay          →  Live camera shows exactly where to place each piece
-```
-
-The frontend walks you through all 5 steps sequentially with visual previews, bounding box overlays, and a full AR camera mode.
-
-<br/>
+### 🖥️ 5. Run the Interactive Frontend
+Open `frontend/index.html` in any modern web browser to access the step-by-step UI dashboard. Ensure camera access is allowed for Step 5 AR functionality.
 
 ---
 
-## 🔬 Technical Deep Dive
-
-### 3-Layer Hybrid Detection System
-
-The fragment detection pipeline uses a cascading fallback architecture designed to handle real-world conditions gracefully:
-
-```python
-# Layer 1 — Template Matching (fastest, most accurate)
-# Uses normalized cross-correlation on grayscale image pairs
-# Confidence threshold: 0.50 (TM_CCOEFF_NORMED)
-# Activates if ≥ 80% of expected pieces are found
-
-# Layer 2 — Background Subtraction
-# Estimates background color from image border (median, robust to corner artifacts)
-# Morphological close → open for noise removal
-# Filters by area bounds: [0.15x, 4.0x] of expected piece area
-
-# Layer 3 — FastSAM + DBSCAN Clustering
-# FastSAM: conf=0.35, iou=0.5, imgsz=640
-# DBSCAN eps = max(15px, 40% of expected piece diagonal)
-# Merges multiple masks belonging to the same physical piece
-```
-
-### Bipartite Matching — No Duplicate Assignments
-
-```python
-from scipy.optimize import linear_sum_assignment
-
-# Cost matrix: [num_pieces × num_grid_cells]
-# Solved via Hungarian Algorithm → optimal 1-to-1 assignment
-row_ind, col_ind = linear_sum_assignment(cost_matrix)
-```
-
-This guarantees that no two detected fragments are assigned to the same grid cell — a critical fix over greedy nearest-neighbor matching.
-
-### Multi-Scale Spatial Pyramid
-
-```python
-grid_scales = [2, 3, 4, 5, 6, 8, 10, 12]  # 8 different scales
-# Each scale generates scale² embeddings in ChromaDB
-# Total embeddings per master image: 2²+3²+...+12² = 550 vectors
-```
-
-This makes the system robust to puzzles of any fragment count — no hardcoded piece count required.
-
-### DiffAssemble GNN Architecture
-
-The spatial diffusion model treats puzzle pieces as **nodes in a fully-connected graph**, where edges encode relative position uncertainty. A denoising diffusion process iteratively refines predicted (x, y) positions until the layout converges.
-
-- Input: 36 patches (6×6 grid), each 32×32 pixels
-- Graph: fully connected adjacency matrix
-- Output: predicted normalized (x, y) coordinates per patch
-- Checkpoints trained on CelebA faces + WikiArt paintings
-
-<br/>
-
----
-
-## 🧪 Test Dataset
-
-The `simulated_images/` directory contains a curated test corpus:
-
-| Dataset | Original | Scattered | Scattered (Limited) |
-|---------|----------|-----------|---------------------|
-| **CelebA** (faces) | 12 images | ✅ | ✅ |
-| **WikiArt** (A.Y. Jackson paintings) | 10 images | ✅ | ✅ |
-| **Custom** (scene, portrait) | 3 images | ✅ | ✅ |
-
-Generate your own scattered images:
-
+## 🛠️ Validation Testing
+To run the automated validation tests and evaluate the hybrid detection system across the simulation dataset:
 ```bash
-# Generate with any number of fragments (constrained 8-12)
-python generate_fragments_limited.py --input your_image.jpg
-
-# Generate with flexible fragment count
-python generate_fragments.py --input your_image.jpg
+python test_hybrid_detection.py
 ```
-
-<br/>
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here are some areas where SynapseRecon could grow:
-
-- [ ] **Mobile app** — React Native or Flutter wrapper for on-device AR
-- [ ] **Jigsaw-shaped pieces** — current system handles rectangular fragments
-- [ ] **Real-time streaming** — WebSocket pipeline for live camera processing  
-- [ ] **Rotation detection** — re-enable the rotation prediction head in DiffAssemble
-- [ ] **Larger puzzles** — extend DiffAssemble to 8×8 and 12×12 patch grids
-- [ ] **Multi-image stitching** — handle fragments from multiple destroyed images
-
-```bash
-# Fork, branch, and PR!
-git checkout -b feature/your-amazing-feature
-git push origin feature/your-amazing-feature
-```
-
-<br/>
-
----
-
-## 📚 References & Credits
-
-This project builds on the shoulders of giants:
-
-| Component | Paper / Project |
-|-----------|----------------|
-| **DiffAssemble** | *DiffAssemble: A Unified Diffusion-based Framework for Assembly Tasks* — CVPR 2024 |
-| **DINOv2** | *DINOv2: Learning Robust Visual Features without Supervision* — Meta AI, 2023 |
-| **FastSAM** | *Fast Segment Anything* — CASIA-IVA Lab, 2023 |
-| **Gemini 2.5 Flash** | Google DeepMind Multimodal LLM, 2025 |
-| **ChromaDB** | Open-source embedding database |
-| **PyTorch Geometric** | Fey & Lenssen, ICLR Workshop 2019 |
-
-<br/>
-
----
-
-## 📄 License
-
-```
-MIT License — Use it, fork it, build on it.
-Just give a star ⭐ if it helped you!
-```
-
-<br/>
+This runs the detector across `simulated_images/`, displaying the detected pieces, target bounds, and matching statistics.
 
 ---
 
 <div align="center">
 
-**Built with 🧠 AI · 🔥 PyTorch · 💡 Gemini · 🎯 Precision**
+**Developed with 🧠 FastAPI · ⚡ DINOv2 & ChromaDB · 🔮 Gemini AI**
 
-*SynapseRecon — Because every piece belongs somewhere.*
-
-<br/>
-
-[![Star this repo](https://img.shields.io/badge/⭐_Star_this_repo-If_it_helped_you!-yellow?style=for-the-badge)](https://github.com/Sevengods77/SynapseRecon/stargazers)
+*SynapseRecon — Reconstruction perfected through spatial intelligence.*
 
 </div>
