@@ -1,6 +1,7 @@
 
 import sys
 import os
+import math
 import numpy as np
 import base64
 import torch
@@ -20,9 +21,34 @@ import torch_geometric.data as pyg_data
 from pydantic import BaseModel
 import google.generativeai as genai
 from dotenv import load_dotenv
+from sklearn.cluster import KMeans
+from detection_utils import find_pieces_by_template, find_pieces_by_background_subtraction, cluster_boxes_dbscan
 
 # Load environment variables (API Keys)
 load_dotenv()
+
+def get_best_grid(w, h, min_f=8, max_f=12):
+    """
+    Finds the best (rows, cols) pair such that rows * cols is between min_f and max_f,
+    and the aspect ratio of the grid (cols/rows) is closest to the image aspect ratio (w/h).
+    """
+    target_ratio = w / h
+    best_r, best_c = 1, min_f
+    min_diff = float('inf')
+    
+    # Try all combinations of r and c that result in total between min_f and max_f
+    for total in range(min_f, max_f + 1):
+        for r in range(1, total + 1):
+            if total % r == 0:
+                c = total // r
+                current_ratio = c / r
+                diff = abs(current_ratio - target_ratio)
+                if diff < min_diff:
+                    min_diff = diff
+                    best_r, best_c = r, c
+                    
+    return best_r, best_c
+
 
 # Add puzzle_diff to Python path so DiffAssemble model can be imported
 # Uses a path relative to this file — works on any machine after cloning the repo
@@ -126,7 +152,11 @@ if DIFFASSEMBLE_AVAILABLE:
 # ─────────────────────────────────────────────
 pipeline_state = {
     "image_bytes": None,       # raw bytes of the scattered image
-    "detections": []           # list of {piece_index, matched_grid_id, match_distance, current_box}
+    "detections": [],          # list of {piece_index, matched_grid_id, match_distance, current_box}
+    "master_crops": {},        # dict of { "Grid_RxC_r_c": np_array, ... } for template matching
+    "master_img": None,        # numpy array of the master image
+    "n_expected_pieces": 9,    # expected piece count
+    "master_grid": (3, 3)      # (rows, cols) of the master grid
 }
 
 print("Backend initialized and ready.")
@@ -143,6 +173,30 @@ async def ingest_master(file: UploadFile = File(...)):
         image = Image.open(io.BytesIO(contents)).convert("RGB")
 
         img_width, img_height = image.size
+
+        # Save master image to pipeline_state
+        pipeline_state["master_img"] = np.array(image)
+
+        # Compute best grid size (primary scale)
+        best_rows, best_cols = get_best_grid(img_width, img_height, 8, 12)
+        pipeline_state["master_grid"] = (best_rows, best_cols)
+        pipeline_state["n_expected_pieces"] = best_rows * best_cols
+
+        # Crop primary scale master crops for template matching
+        piece_w = img_width / best_cols
+        piece_h = img_height / best_rows
+        master_crops = {}
+        for r in range(best_rows):
+            for c in range(best_cols):
+                x1 = int(c * piece_w)
+                y1 = int(r * piece_h)
+                x2 = int((c + 1) * piece_w)
+                y2 = int((r + 1) * piece_h)
+
+                crop = image.crop((x1, y1, x2, y2))
+                master_crops[f"Grid_{best_rows}x{best_cols}_{r}_{c}"] = np.array(crop)
+        pipeline_state["master_crops"] = master_crops
+        print(f"  Saved master crops for {best_rows}x{best_cols} grid in pipeline_state.")
 
         # Build a multi-scale spatial pyramid — supports any number of puzzle pieces
         grid_scales = [2, 3, 4, 5, 6, 8, 10, 12]
@@ -209,63 +263,77 @@ async def analyze_image(file: UploadFile = File(...)):
         frame = np.array(image)
         img_w, img_h = image.size
 
-        # FastSAM segmentation (fine-tuned to catch full pieces instead of just internal objects)
-        results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.35, iou=0.5, verbose=False)
+        n_expected = pipeline_state.get("n_expected_pieces", 9)
+        use_template_results = False
+        final_detections = []
 
-        response_data = []
-        if results and len(results) > 0 and results[0].masks is not None:
-            boxes = results[0].boxes.xyxy.cpu().numpy()
+        # Layer 1: Template Matching (primary)
+        master_crops = pipeline_state.get("master_crops")
+        if master_crops:
+            print(f"[Layer 1] Attempting Template Matching for {n_expected} expected pieces...")
+            # Try to match crops in frame using find_pieces_by_template
+            detected_templates = find_pieces_by_template(frame, master_crops, confidence_threshold=0.50)
+            print(f"[Layer 1] Found {len(detected_templates)} matches.")
             
-            # Apply NMS (Non-Maximum Suppression) to remove nested/duplicate boxes
-            valid_boxes = []
-            img_area = img_w * img_h
-            for box in boxes:
-                x1, y1, x2, y2 = map(int, box)
-                box_w = x2 - x1
-                box_h = y2 - y1
-                box_area = box_w * box_h
-                # Filter small noise AND filter giant background masks (>80% of image area)
-                if x2 > x1 and y2 > y1 and box_w >= 25 and box_h >= 25:
-                    if box_area < 0.8 * img_area:
-                        valid_boxes.append((x1, y1, x2, y2))
-                    
-            # Spatial Box Merging (Fuses adjacent/overlapping split bounding boxes into one full piece)
-            def boxes_intersect_or_close(b1, b2, threshold=20):
-                e_b1 = (b1[0]-threshold, b1[1]-threshold, b1[2]+threshold, b1[3]+threshold)
-                e_b2 = (b2[0]-threshold, b2[1]-threshold, b2[2]+threshold, b2[3]+threshold)
-                return not (e_b1[2] < e_b2[0] or e_b1[0] > e_b2[2] or e_b1[3] < e_b2[1] or e_b1[1] > e_b2[3])
-
-            merged = True
-            while merged:
-                merged = False
-                new_boxes = []
-                while len(valid_boxes) > 0:
-                    base_box = valid_boxes.pop(0)
-                    to_merge = []
-                    for i in range(len(valid_boxes)-1, -1, -1):
-                        if boxes_intersect_or_close(base_box, valid_boxes[i], threshold=20):
-                            to_merge.append(valid_boxes.pop(i))
-                    if to_merge:
-                        all_x1 = [base_box[0]] + [b[0] for b in to_merge]
-                        all_y1 = [base_box[1]] + [b[1] for b in to_merge]
-                        all_x2 = [base_box[2]] + [b[2] for b in to_merge]
-                        all_y2 = [base_box[3]] + [b[3] for b in to_merge]
-                        base_box = (min(all_x1), min(all_y1), max(all_x2), max(all_y2))
-                        merged = True
-                    new_boxes.append(base_box)
-                valid_boxes = new_boxes
+            # If we detected at least 80% of expected pieces, we use Layer 1
+            if len(detected_templates) >= n_expected * 0.8:
+                print(f"[Layer 1] High confidence match count ({len(detected_templates)}/{n_expected}). Proceeding with Layer 1.")
+                use_template_results = True
                 
-            filtered_boxes = valid_boxes
+                # Format detection data
+                # detected_templates elements are: (x1, y1, x2, y2, crop_id, confidence)
+                for idx, (x1, y1, x2, y2, crop_id, conf) in enumerate(detected_templates):
+                    piece_data = {
+                        "piece_index": idx + 1,
+                        "id": crop_id,
+                        "match_distance": round(1.0 - conf, 4), # match_distance = 1 - confidence
+                        "box": [x1, y1, x2, y2],
+                    }
+                    final_detections.append(piece_data)
 
-            import math
-            num_pieces = len(filtered_boxes)
+        # Fallback to Layer 2 or Layer 3
+        if not use_template_results:
+            print(f"[Layer 2] Attempting Background Subtraction for {n_expected} expected pieces...")
+            detected_boxes = find_pieces_by_background_subtraction(frame, n_expected)
+            print(f"[Layer 2] Found {len(detected_boxes)} pieces.")
+            
+            # If Layer 2 fails to find at least 50% of expected pieces, fallback to Layer 3
+            if len(detected_boxes) < n_expected * 0.5:
+                print(f"[Layer 3] Background Subtraction found too few pieces. Falling back to Layer 3: FastSAM + DBSCAN...")
+                
+                # Run FastSAM
+                results = fast_sam(frame, device='cpu', retina_masks=True, imgsz=640, conf=0.35, iou=0.5, verbose=False)
+                raw_boxes = []
+                if results and len(results) > 0 and results[0].masks is not None:
+                    boxes = results[0].boxes.xyxy.cpu().numpy()
+                    img_area = img_w * img_h
+                    for box in boxes:
+                        x1, y1, x2, y2 = map(int, box)
+                        box_w = x2 - x1
+                        box_h = y2 - y1
+                        box_area = box_w * box_h
+                        if x2 > x1 and y2 > y1 and box_w >= 25 and box_h >= 25:
+                            if box_area < 0.8 * img_area:
+                                raw_boxes.append((x1, y1, x2, y2))
+                
+                # Cluster boxes with DBSCAN
+                best_scale = max(2, round(math.sqrt(n_expected)))
+                expected_piece_w = img_w / best_scale
+                expected_piece_h = img_h / best_scale
+                expected_diagonal = math.sqrt(expected_piece_w**2 + expected_piece_h**2)
+                
+                detected_boxes = cluster_boxes_dbscan(raw_boxes, expected_diagonal)
+                print(f"[Layer 3] DBSCAN clustered into {len(detected_boxes)} pieces.")
+            
+            # Now we have detected_boxes from Layer 2 or Layer 3. We extract features and match them.
+            num_pieces = len(detected_boxes)
             best_scale = max(2, round(math.sqrt(num_pieces))) if num_pieces > 0 else 3
             print(f"  Detected {num_pieces} fragments. Forcing grid matching to {best_scale}x{best_scale}.")
-
+            
             # Extract features for all pieces
             all_features = []
             piece_boxes = []
-            for idx, box in enumerate(filtered_boxes):
+            for idx, box in enumerate(detected_boxes):
                 x1, y1, x2, y2 = box
                 crop = image.crop((x1, y1, x2, y2))
                 inputs = processor(images=crop, return_tensors="pt").to(device)
@@ -328,7 +396,7 @@ async def analyze_image(file: UploadFile = File(...)):
                                     break
                         except Exception as qe:
                             matched_ids[i] = "Error"
-
+                            
             for idx in range(num_pieces):
                 x1, y1, x2, y2 = piece_boxes[idx]
                 piece_data = {
@@ -337,17 +405,58 @@ async def analyze_image(file: UploadFile = File(...)):
                     "match_distance": match_distances[idx],
                     "box": [x1, y1, x2, y2],
                 }
-                response_data.append(piece_data)
+                final_detections.append(piece_data)
 
-                # Store in pipeline_state for Step 3
-                pipeline_state["detections"].append({
-                    "piece_index": idx + 1,
-                    "matched_grid_id": matched_ids[idx],
-                    "match_distance": match_distances[idx],
-                    "current_box": [x1, y1, x2, y2],
-                    "img_w": img_w,
-                    "img_h": img_h,
-                })
+        # Post-validation / Clustering (If we got too many boxes, cluster down to n_expected using KMeans)
+        if len(final_detections) > n_expected * 1.3:
+            print(f"WARNING: Got {len(final_detections)} pieces, but expected {n_expected}. Clustering down to {n_expected} using KMeans...")
+            try:
+                centers = np.array([((d["box"][0] + d["box"][2])//2, (d["box"][1] + d["box"][3])//2) for d in final_detections])
+                km = KMeans(n_clusters=n_expected, random_state=42, n_init=10).fit(centers)
+                labels = km.labels_
+                
+                new_detections = []
+                for label in range(n_expected):
+                    cluster_items = [final_detections[i] for i in range(len(final_detections)) if labels[i] == label]
+                    if not cluster_items:
+                        continue
+                    cx1 = min(item["box"][0] for item in cluster_items)
+                    cy1 = min(item["box"][1] for item in cluster_items)
+                    cx2 = max(item["box"][2] for item in cluster_items)
+                    cy2 = max(item["box"][3] for item in cluster_items)
+                    valid_items = [item for item in cluster_items if item["id"] != "Unknown" and item["id"] != "Error"]
+                    best_item = min(valid_items, key=lambda x: x.get("match_distance", 1.0)) if valid_items else cluster_items[0]
+                    
+                    new_detections.append({
+                        "piece_index": label + 1,
+                        "id": best_item["id"],
+                        "match_distance": best_item.get("match_distance"),
+                        "box": [cx1, cy1, cx2, cy2]
+                    })
+                final_detections = new_detections
+            except Exception as ke:
+                print(f"KMeans clustering down failed: {ke}")
+
+        # Update pipeline state detections
+        response_data = []
+        for idx, det in enumerate(final_detections):
+            x1, y1, x2, y2 = det["box"]
+            piece_data = {
+                "piece_index": idx + 1,
+                "id": det["id"],
+                "match_distance": det["match_distance"],
+                "box": [x1, y1, x2, y2],
+            }
+            response_data.append(piece_data)
+            
+            pipeline_state["detections"].append({
+                "piece_index": idx + 1,
+                "matched_grid_id": det["id"],
+                "match_distance": det["match_distance"],
+                "current_box": [x1, y1, x2, y2],
+                "img_w": img_w,
+                "img_h": img_h,
+            })
 
         print(f"  Detected {len(response_data)} pieces. Pipeline state updated.")
         return {"detections": response_data}

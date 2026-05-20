@@ -401,8 +401,9 @@
     <div class="pipeline-section" id="arOverlaySection" style="margin-bottom: 40px; border: 2px solid #10b981;">
         <h2>Step 5: AR Ghost Overlay</h2>
         <p style="color: #94a3b8; font-size: 13px; margin-top: 0;">Activate the live camera feed to see the puzzle ghost overlay for visual guidance.</p>
-        <div style="display: flex; justify-content: center; padding-top: 10px;">
-            <button id="visualizeBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">Visualize and Reassemble</button>
+        <div style="display: flex; justify-content: center; gap: 16px; padding-top: 10px; flex-wrap: wrap;">
+            <button id="visualizeBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">&#9654; Start AR Overlay</button>
+            <button id="stopArBtn" class="btn" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); display: none;">&#9632; Stop AR</button>
         </div>
     </div>
 
@@ -978,13 +979,33 @@
         });
 
         const visualizeBtn = document.getElementById('visualizeBtn');
+        const stopArBtn = document.getElementById('stopArBtn');
+
+        function stopARMode() {
+            if (arVideo.srcObject) {
+                arVideo.srcObject.getTracks().forEach(track => track.stop());
+                arVideo.srcObject = null;
+            }
+            arContainer.style.display = 'none';
+            canvas.style.display = 'block';
+            isARMode = false;
+            visualizeBtn.innerText = '\u25B6 Start AR Overlay';
+            stopArBtn.style.display = 'none';
+        }
+
         visualizeBtn.addEventListener('click', () => {
             if (!isARMode) {
                 startARMode();
-                window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll up to the central view so they can see the camera
+                visualizeBtn.innerText = '\u23F8 AR Running...';
+                stopArBtn.style.display = 'inline-block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
+        });
+
+        stopArBtn.addEventListener('click', () => {
+            stopARMode();
         });
     </script>
 </body>
