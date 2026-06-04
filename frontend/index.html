@@ -8,78 +8,203 @@
         body {
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             min-height: 100vh;
-            background-color: #1a1a2e;
-            color: white;
+            background: radial-gradient(circle at 50% 50%, #151528 0%, #0a0a14 100%);
+            color: #e2e8f0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
         }
 
         .header {
-            margin-top: 40px;
-            margin-bottom: 20px;
+            padding: 30px 20px 10px 20px;
             text-align: center;
+            background: linear-gradient(180deg, rgba(0, 242, 254, 0.05) 0%, rgba(0,0,0,0) 100%);
+            border-bottom: 1px solid rgba(0, 242, 254, 0.08);
+            width: 100%;
+            box-sizing: border-box;
         }
 
         h1 {
             margin: 0;
-            font-size: 32px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            font-size: 36px;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
             background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            margin: 8px 0 0 0;
+            color: #94a3b8;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Dashboard Grid Layout */
+        .app-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 30px;
+            width: 95%;
+            max-width: 1400px;
+            margin: 24px auto 40px auto;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+                gap: 24px;
+                width: 90%;
+            }
+        }
+
+        /* Sticky Left Column styling */
+        .viewport-panel {
+            position: sticky;
+            top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .viewport-panel {
+                position: relative;
+                top: 0;
+                max-height: none;
+                overflow-y: visible;
+                padding-right: 0;
+            }
+        }
+
+        /* Custom Scrollbar for Viewport Panel */
+        .viewport-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .viewport-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 10px;
+        }
+        .viewport-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .viewport-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .pipeline-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Glassmorphic Pipeline Section Card */
+        .pipeline-section {
+            background: rgba(30, 30, 62, 0.25);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .pipeline-section:hover {
+            border-color: rgba(0, 242, 254, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 242, 254, 0.05);
+        }
+
+        .pipeline-section h2 {
+            margin-top: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: #00f2fe;
+            border-bottom: 1px solid rgba(0, 242, 254, 0.15);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
         }
 
         .upload-controls {
-            margin-bottom: 30px;
             display: flex;
             gap: 15px;
             align-items: center;
-            background: rgba(255,255,255,0.05);
-            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px 24px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
         input[type="file"] {
             display: none;
         }
 
+        /* Buttons with Gradient Glow */
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #0a0a1a;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            font-size: 16px;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            font-size: 15px;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 242, 254, 0.45);
+            filter: brightness(1.1);
         }
 
         .btn:active {
             transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0, 242, 254, 0.2);
         }
 
+        .btn:disabled {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: rgba(255, 255, 255, 0.3) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Viewport Container Glow with cinematic sizing */
         .container {
             position: relative;
-            width: 90%;
-            max-width: 900px;
-            background-color: #000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-radius: 12px;
+            width: 100%;
+            background: radial-gradient(circle at center, #171738 0%, #090914 100%);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(0, 242, 254, 0.05);
+            border: 1px solid rgba(0, 242, 254, 0.15);
+            border-radius: 16px;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 400px;
+            min-height: 550px;
+            transition: border-color 0.4s, box-shadow 0.4s;
+        }
+
+        .container.active-ar {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 25px rgba(16, 185, 129, 0.2);
         }
 
         canvas {
@@ -93,25 +218,29 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
+            background: rgba(8, 8, 16, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 242, 254, 0.2);
             padding: 20px 40px;
-            border-radius: 12px;
+            border-radius: 14px;
             font-size: 18px;
-            font-weight: bold;
+            font-weight: 600;
             display: none;
             z-index: 20;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            color: #00f2fe;
         }
 
         .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(0,242,254,0.2);
             border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
+            border-top-color: #00f2fe;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
             vertical-align: middle;
         }
 
@@ -119,54 +248,25 @@
             to { transform: rotate(360deg); }
         }
 
-        .pipeline-section {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            width: 90%;
-            max-width: 900px;
-        }
-
-        .pipeline-section {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            width: 90%;
-            max-width: 900px;
-        }
-
-        .pipeline-section h2 {
-            margin-top: 0;
-            font-size: 20px;
-            color: #00f2fe;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-
         .result-table-wrap {
-            width: 90%;
-            max-width: 900px;
-            margin-bottom: 40px;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.06);
             display: none;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
         }
 
         .result-table-wrap.visible { display: block; }
 
         .result-table-header {
-            background: rgba(16, 185, 129, 0.12);
-            padding: 15px 20px;
+            background: rgba(16, 185, 129, 0.08);
+            backdrop-filter: blur(10px);
+            padding: 16px 20px;
             display: flex;
             align-items: center;
             gap: 10px;
-            border-bottom: 1px solid rgba(16,185,129,0.3);
+            border-bottom: 1px solid rgba(16,185,129,0.2);
             color: #34d399;
             font-weight: bold;
             font-size: 16px;
@@ -176,102 +276,127 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
-            background: rgba(0,0,0,0.3);
+            background: rgba(15, 15, 30, 0.4);
         }
 
         thead th {
-            background: rgba(15,23,42,0.8);
-            padding: 12px 16px;
+            background: rgba(10, 10, 20, 0.85);
+            padding: 14px 18px;
             text-align: left;
             color: #94a3b8;
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        tbody tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
-        tbody tr:hover { background: rgba(255,255,255,0.04); }
-        tbody td { padding: 12px 16px; color: #cbd5e1; }
+        tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s; }
+        tbody tr:hover { background: rgba(255,255,255,0.03); }
+        tbody td { padding: 14px 18px; color: #cbd5e1; vertical-align: middle; }
+        
         .badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 999px;
+            padding: 4px 10px;
+            border-radius: 6px;
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
-        .badge-cyan { background: rgba(0,255,234,0.1); color: #00ffea; border: 1px solid rgba(0,255,234,0.3); }
-        .badge-violet { background: rgba(139,92,246,0.1); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
-        .badge-green { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
-        .hint-text { font-size: 12px; color: #7c8fab; font-style: italic; }
+        .badge-cyan { background: rgba(0,242,254,0.1); color: #00ffea; border: 1px solid rgba(0,242,254,0.2); }
+        .badge-violet { background: rgba(139,92,246,0.1); color: #c084fc; border: 1px solid rgba(139,92,246,0.2); }
+        .badge-green { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+        .hint-text { font-size: 12px; color: #94a3b8; line-height: 1.4; }
 
         select {
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.15);
-            color: white;
-            padding: 8px 14px;
+            background: rgba(15, 15, 30, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e2e8f0;
+            padding: 10px 16px;
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
+            transition: border-color 0.3s;
+            outline: none;
         }
 
-        select option { background: #1a1a2e; }
+        select:focus {
+            border-color: #00f2fe;
+        }
 
-        /* Step 4 & 5: Assembly HUD Styles */
+        select option { background: #0a0a14; color: #e2e8f0; }
+
+        /* Step List */
         .step-list {
             list-style: none;
             padding: 0;
-            margin-top: 15px;
+            margin: 20px 0 0 0;
         }
+        
         .step-item {
-            background: rgba(255, 255, 255, 0.05);
-            margin-bottom: 10px;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid transparent;
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 12px;
+            padding: 18px 20px;
+            border-radius: 12px;
+            border-left: 5px solid transparent;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             display: flex;
             align-items: center;
             gap: 15px;
+            cursor: pointer;
         }
+        
+        .step-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(4px);
+            border-color: rgba(0, 242, 254, 0.1);
+        }
+        
         .step-item.active {
-            background: rgba(79, 172, 254, 0.15);
-            border-left: 4px solid #4facfe;
-            box-shadow: 0 0 15px rgba(79, 172, 254, 0.2);
-            transform: translateX(5px);
+            background: linear-gradient(90deg, rgba(79, 172, 254, 0.12) 0%, rgba(0, 242, 254, 0.02) 100%);
+            border-left: 5px solid #00f2fe;
+            border-color: rgba(0, 242, 254, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.08);
+            transform: translateX(6px);
         }
+        
         .step-number {
-            background: #4facfe;
-            color: #1a1a2e;
-            width: 24px;
-            height: 24px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #0a0a14;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-weight: bold;
+            font-weight: 800;
             font-size: 12px;
             flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
         }
+        
         .listening-indicator {
             display: inline-block;
             width: 10px;
             height: 10px;
             background: #ef4444;
             border-radius: 50%;
-            margin-right: 5px;
+            margin-right: 8px;
         }
+        
         .listening-indicator.active {
             background: #10b981;
-            box-shadow: 0 0 8px #10b981;
+            box-shadow: 0 0 10px #10b981;
             animation: pulse-green 1.5s infinite;
         }
+        
         @keyframes pulse-green {
             0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
+            50% { transform: scale(1.25); opacity: 0.6; }
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* AR Camera Styles */
+        /* AR Camera Viewport Styles */
         #arContainer {
             display: none;
             position: absolute;
@@ -285,7 +410,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 12px;
+            border-radius: 16px;
         }
 
         #arOverlay {
@@ -294,10 +419,46 @@
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Allow clicks to pass through */
+            pointer-events: none;
             z-index: 10;
         }
 
+        /* Inputs range custom styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #00f2fe;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+            transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #10b981;
+            cursor: pointer;
+        }
+
+        .step-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
     </style>
 </head>
 <body>
@@ -307,103 +468,174 @@
         <p>Train database with master image, then analyze fragments</p>
     </div>
 
-    <div class="pipeline-section">
-        <h2>Step 1: Train Database (Master Image)</h2>
-        <div class="upload-controls" style="margin-bottom: 0; box-shadow: none;">
-            <label for="masterUpload" class="btn">
-                Choose Master Image
-            </label>
-            <input type="file" id="masterUpload" accept="image/*">
-            <button id="ingestBtn" class="btn" style="display: none;">Ingest Pieces</button>
-        </div>
-    </div>
+    <div class="app-layout">
+        <!-- LEFT COLUMN: Sticky AR Viewport & Control Dashboard -->
+        <div class="viewport-panel">
+            <div class="container">
+                <canvas id="displayCanvas"></canvas>
+                <div id="statusOverlay" class="status-overlay">
+                    <span class="spinner"></span> <span id="statusText">Analyzing image...</span>
+                </div>
+                <div id="arContainer">
+                    <video id="arVideo" autoplay playsinline></video>
+                    <canvas id="arOverlay"></canvas>
+                </div>
+            </div>
 
-    <div class="pipeline-section">
-        <h2>Step 2: Solve Puzzle (Analyze Fragments)</h2>
-        <div class="upload-controls" style="margin-bottom: 0; box-shadow: none;">
-            <label for="imageUpload" class="btn">
-                Choose Fragment Image
-            </label>
-            <input type="file" id="imageUpload" accept="image/*">
-            <button id="analyzeBtn" class="btn" style="display: none;">Analyze Fragments</button>
-        </div>
-    </div>
+            <!-- Integrated Viewport Controller -->
+            <div class="pipeline-section" id="arOverlaySection" style="margin-bottom: 0; border: 2px solid #10b981;">
+                <h2>Step 5: AR Ghost Overlay</h2>
+                <p style="color: #94a3b8; font-size: 13px; margin-top: 0;">Activate the live camera feed to see the puzzle ghost overlay for visual guidance.</p>
+                
+                <!-- Advanced Overlay Customization Panel -->
+                <div class="upload-controls" style="margin-top: 15px; margin-bottom: 15px; flex-direction: column; align-items: stretch; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="display: flex; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+                        <!-- Source Selection -->
+                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px;">
+                            <label style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Ghost Overlay Source</label>
+                            <select id="arSourceSelect" style="width: 100%;">
+                                <option value="simulation" selected>✨ Live Assembly Simulation</option>
+                                <option value="reassembled">🧩 Reassembled Solution (Step 3)</option>
+                                <option value="master">🖼️ Master Reference (Step 1)</option>
+                                <option value="fragment">📸 Scattered Fragments (Step 2)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Opacity Control -->
+                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px;">
+                            <label style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between;">
+                                <span>Opacity</span>
+                                <span id="arOpacityVal">30%</span>
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 10px; height: 38px;">
+                                <input type="range" id="arOpacitySlider" min="0" max="100" value="30" style="width: 100%; cursor: pointer;">
+                            </div>
+                        </div>
 
-    <div class="container">
-        <canvas id="displayCanvas"></canvas>
-        <div id="statusOverlay" class="status-overlay">
-            <span class="spinner"></span> <span id="statusText">Analyzing image...</span>
-        </div>
-        <div id="arContainer">
-            <video id="arVideo" autoplay playsinline></video>
-            <canvas id="arOverlay"></canvas>
-        </div>
-    </div>
+                        <!-- Camera Toggle -->
+                        <div style="display: flex; flex-direction: column; gap: 6px; justify-content: center; min-width: 150px;">
+                            <label style="color: #94a3b8; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Camera Feed</label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; height: 38px; color: #cbd5e1; font-size: 14px; margin: 0;">
+                                <input type="checkbox" id="arCameraToggle" checked style="width: 18px; height: 18px; accent-color: #10b981; cursor: pointer;"> Enable Camera
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
-    <div class="pipeline-section" style="margin-top: 20px;">
-        <h2>Step 3: Restructure (DiffAssemble)</h2>
-        <p style="color: #94a3b8; font-size: 13px; margin-top: 0;">Uses the scattered image from Step 2. Select a checkpoint and click Reassemble.</p>
-        <div class="upload-controls" style="margin-bottom: 0; box-shadow: none;">
-            <label style="color: #94a3b8; font-size: 14px;">Checkpoint:</label>
-            <select id="modeSelect">
-                <option value="celeba">👩 Face (CelebA)</option>
-                <option value="wikiart">🎨 Art (WikiArt)</option>
-            </select>
-            <button id="reassembleBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">Reassemble</button>
-        </div>
-    </div>
-
-    <div class="result-table-wrap" id="resultTableWrap">
-        <div class="result-table-header" style="justify-content: space-between;">
-            <span>✅ Graph Successfully Solved — Piece Placement Map</span>
-            <button onclick="fetchAssemblySteps(lastResults)" class="btn" style="padding: 5px 12px; font-size: 12px; background: #4facfe;">Generate Guide Manually</button>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Piece #</th>
-                    <th>Matched Region</th>
-                    <th>Current Position</th>
-                    <th>Target Position</th>
-                    <th>Rotation (θ)</th>
-                    <th>Direction Hint (Phase 4)</th>
-                </tr>
-            </thead>
-            <tbody id="resultTableBody"></tbody>
-        </table>
-    </div>
-
-    <div class="pipeline-section" id="reassembledOutputSection" style="display: none; margin-bottom: 20px; border: 2px solid #8b5cf6;">
-        <h2>Reassembled Output Preview</h2>
-        <div style="display: flex; justify-content: center; background: #000; border-radius: 8px; padding: 10px; overflow: hidden;">
-            <canvas id="reassembledCanvas" style="max-width: 100%; height: auto; border-radius: 8px;"></canvas>
-        </div>
-    </div>
-
-    <div class="pipeline-section" id="assemblyGuideSection" style="margin-bottom: 20px; border: 2px solid #4facfe;">
-        <h2>Step 4: Audio Assembly Guide</h2>
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px;">
-            <p style="color: #94a3b8; font-size: 13px; margin: 0; display: flex; align-items: center;">
-                <span id="listeningIndicator" class="listening-indicator"></span> 
-                <span id="listeningText">Vocal Assistant: Offline</span>
-            </p>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="testVoice()" class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 12px; padding: 5px 12px;">Test Voice</button>
-                <button onclick="stopVoice()" class="btn" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.5); font-size: 12px; padding: 5px 12px; color: #fca5a5;">Stop Voice</button>
-                <button id="startGuideBtn" class="btn" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">Start Assembly Guide</button>
+                <div style="display: flex; justify-content: center; gap: 16px; padding-top: 10px; flex-wrap: wrap;">
+                    <button id="visualizeBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">&#9654; Start AR Overlay</button>
+                    <button id="stopArBtn" class="btn" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); display: none;">&#9632; Stop AR</button>
+                </div>
             </div>
         </div>
-        <ul id="stepList" class="step-list">
-            <!-- Steps populated via JS -->
-        </ul>
-    </div>
 
-    <div class="pipeline-section" id="arOverlaySection" style="margin-bottom: 40px; border: 2px solid #10b981;">
-        <h2>Step 5: AR Ghost Overlay</h2>
-        <p style="color: #94a3b8; font-size: 13px; margin-top: 0;">Activate the live camera feed to see the puzzle ghost overlay for visual guidance.</p>
-        <div style="display: flex; justify-content: center; gap: 16px; padding-top: 10px; flex-wrap: wrap;">
-            <button id="visualizeBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">&#9654; Start AR Overlay</button>
-            <button id="stopArBtn" class="btn" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 12px 30px; font-size: 18px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); display: none;">&#9632; Stop AR</button>
+        <!-- RIGHT COLUMN: Sequential Pipeline Control Panels -->
+        <div class="pipeline-panel">
+            <div class="pipeline-section">
+                <h2>Step 1: Train Database (Master Image)</h2>
+                <div class="upload-controls" style="margin-bottom: 0; box-shadow: none; background: transparent; border: none; padding: 0;">
+                    <label for="masterUpload" class="btn">
+                        Choose Master Image
+                    </label>
+                    <input type="file" id="masterUpload" accept="image/*">
+                    <button id="ingestBtn" class="btn" style="display: none;">Ingest Pieces</button>
+                </div>
+            </div>
+
+            <div class="pipeline-section">
+                <h2>Step 2: Solve Puzzle (Analyze Fragments)</h2>
+                <div class="upload-controls" style="margin-bottom: 0; box-shadow: none; background: transparent; border: none; padding: 0; display: flex; gap: 15px; flex-wrap: wrap;">
+                    <label for="imageUpload" class="btn" id="imageUploadLabel">
+                        Choose Fragment Image
+                    </label>
+                    <input type="file" id="imageUpload" accept="image/*">
+                    <button id="startFragmentCamBtn" class="btn" style="background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); color: white; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25);">📷 Start Live Feed</button>
+                    <button id="captureFragmentBtn" class="btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.25); display: none;">📸 Capture & Analyze</button>
+                    <button id="analyzeBtn" class="btn" style="display: none;">Analyze Fragments</button>
+                </div>
+            </div>
+
+            <div class="pipeline-section">
+                <h2>Step 3: Restructure (DiffAssemble)</h2>
+                <p style="color: #94a3b8; font-size: 13px; margin-top: 0;">Uses the scattered image from Step 2. Select a checkpoint and click Reassemble.</p>
+                <div class="upload-controls" style="margin-bottom: 0; box-shadow: none; background: transparent; border: none; padding: 0;">
+                    <label style="color: #94a3b8; font-size: 14px; margin-right: 10px;">Checkpoint:</label>
+                    <select id="modeSelect">
+                        <option value="celeba">👩 Face (CelebA)</option>
+                        <option value="wikiart">🎨 Art (WikiArt)</option>
+                    </select>
+                    <button id="reassembleBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25); margin-left: 10px;">Reassemble</button>
+                </div>
+            </div>
+
+            <div class="result-table-wrap" id="resultTableWrap">
+                <div class="result-table-header" style="justify-content: space-between;">
+                    <span>✅ Graph Successfully Solved — Piece Placement Map</span>
+                    <button onclick="fetchAssemblySteps(lastResults)" class="btn" style="padding: 5px 12px; font-size: 12px; background: #4facfe; color: #0a0a14;">Generate Guide Manually</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Piece #</th>
+                            <th>Matched Region</th>
+                            <th>Current Position</th>
+                            <th>Target Position</th>
+                            <th>Rotation (θ)</th>
+                            <th>Direction Hint (Phase 4)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="pipeline-section" id="reassembledOutputSection" style="display: none; border: 2px solid #8b5cf6;">
+                <h2>Reassembled Output Preview</h2>
+                <div style="display: flex; justify-content: center; background: #080810; border-radius: 8px; padding: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                    <canvas id="reassembledCanvas" style="max-width: 100%; height: auto; border-radius: 8px;"></canvas>
+                </div>
+            </div>
+
+            <div class="pipeline-section" id="assemblyGuideSection" style="border: 2px solid #4facfe;">
+                <h2>Step 4: Audio Assembly Guide</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.03);">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <p style="color: #94a3b8; font-size: 13px; margin: 0; display: flex; align-items: center;">
+                            <span id="listeningIndicator" class="listening-indicator"></span> 
+                            <span id="listeningText">Vocal Assistant: Offline</span>
+                        </p>
+                        <!-- Real-time Mic soundwave visualizer -->
+                        <canvas id="visualizerCanvas" width="160" height="30" style="display: none; background: transparent; border-radius: 4px; margin-top: 4px;"></canvas>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="testVoice()" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 12px; padding: 6px 14px; color: #cbd5e1; box-shadow: none;">Test Voice</button>
+                        <button onclick="stopVoice()" class="btn" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); font-size: 12px; padding: 6px 14px; color: #fca5a5; box-shadow: none;">Stop Voice</button>
+                        <button id="startGuideBtn" class="btn" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); font-size: 12px; padding: 6px 14px;">Start Assembly Guide</button>
+                    </div>
+                </div>
+
+                <!-- Assembly Progress Deck -->
+                <div id="assemblyProgressContainer" style="margin-top: 15px; display: none; background: rgba(255,255,255,0.02); padding: 12px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04);">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: #cbd5e1; margin-bottom: 8px; font-weight: bold; letter-spacing: 0.5px;">
+                        <span id="progressText">Assembly Progress: 0 / 0 Pieces (0%)</span>
+                        <span id="activePieceText" style="color: #00ffea; text-shadow: 0 0 5px rgba(0,255,234,0.3);">Active: None</span>
+                    </div>
+                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);">
+                        <div id="progressBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); transition: width 0.4s ease; box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);"></div>
+                    </div>
+                </div>
+
+                <!-- Step Checklist -->
+                <ul id="stepList" class="step-list">
+                    <!-- Steps populated via JS -->
+                </ul>
+
+                <!-- Physical Assembly Console -->
+                <div id="consoleControlsCard" style="display: flex; justify-content: center; gap: 15px; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.03);">
+                    <button id="prevBtn" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; min-width: 120px; font-size: 14px; box-shadow: none;" disabled>⏮️ Previous</button>
+                    <button id="repeatBtn" class="btn" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); color: #c084fc; min-width: 120px; font-size: 14px; box-shadow: none;">🔁 Repeat</button>
+                    <button id="nextBtn" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; min-width: 120px; font-size: 14px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);" disabled>Next ⏭️</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -413,6 +645,9 @@
         
         const imageUpload = document.getElementById('imageUpload');
         const analyzeBtn = document.getElementById('analyzeBtn');
+        const imageUploadLabel = document.getElementById('imageUploadLabel');
+        const startFragmentCamBtn = document.getElementById('startFragmentCamBtn');
+        const captureFragmentBtn = document.getElementById('captureFragmentBtn');
         
         const canvas = document.getElementById('displayCanvas');
         const ctx = canvas.getContext('2d');
@@ -423,11 +658,25 @@
         let masterImage = null;
         let selectedFile = null;
         let currentMode = null;
+        let isFragmentCamActive = false;
+        let fragmentStream = null;
+        let currentGridRows = 3;
+        let currentGridCols = 3;
 
         function handleImageSelection(e, btnToShow, mode) {
             const file = e.target.files[0];
             if (!file) return;
             
+            // Auto-stop active camera feeds to prevent overlay bugs
+            if (isFragmentCamActive) {
+                console.log("handleImageSelection: stopping active fragment camera stream.");
+                stopFragmentCamera();
+            }
+            if (isARMode) {
+                console.log("handleImageSelection: stopping active AR simulation loop.");
+                stopARMode();
+            }
+
             selectedFile = file;
             currentMode = mode;
             
@@ -438,6 +687,10 @@
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
+                    // Visibility guarantee: enforce canvas block displays and hide AR containers
+                    canvas.style.display = 'block';
+                    arContainer.style.display = 'none';
+
                     canvas.width = img.width;
                     canvas.height = img.height;
                     ctx.drawImage(img, 0, 0);
@@ -452,6 +705,10 @@
 
         masterUpload.addEventListener('change', (e) => handleImageSelection(e, ingestBtn, 'master'));
         imageUpload.addEventListener('change', (e) => handleImageSelection(e, analyzeBtn, 'fragment'));
+
+        // Reset inputs on click to guarantee Chrome same-file selections trigger change events
+        masterUpload.addEventListener('click', () => { masterUpload.value = ""; });
+        imageUpload.addEventListener('click', () => { imageUpload.value = ""; });
 
         ingestBtn.addEventListener('click', async function() {
             if (!selectedFile || currentMode !== 'master') return;
@@ -486,18 +743,18 @@
         });
 
         // Handle analysis request
-        analyzeBtn.addEventListener('click', async function() {
-            if (!selectedFile || currentMode !== 'fragment') return;
-
+        async function performAnalysis(file) {
             statusText.innerText = "Analyzing fragments...";
             statusOverlay.style.display = 'block';
             analyzeBtn.disabled = true;
 
             // Redraw clean image before analyzing (clears old boxes)
-            ctx.drawImage(currentImage, 0, 0);
+            if (currentImage) {
+                ctx.drawImage(currentImage, 0, 0);
+            }
 
             const formData = new FormData();
-            formData.append('file', selectedFile);
+            formData.append('file', file);
 
             try {
                 const response = await fetch('http://localhost:8000/analyze_image', {
@@ -523,6 +780,103 @@
                 statusOverlay.style.display = 'none';
                 analyzeBtn.disabled = false;
             }
+        }
+
+        analyzeBtn.addEventListener('click', () => {
+            if (selectedFile && currentMode === 'fragment') {
+                performAnalysis(selectedFile);
+            }
+        });
+
+        // Step 2 Camera Stream Controls
+        async function toggleFragmentCamera() {
+            console.log("toggleFragmentCamera clicked. isFragmentCamActive =", isFragmentCamActive);
+            if (!isFragmentCamActive) {
+                try {
+                    fragmentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    arVideo.srcObject = fragmentStream;
+                    arVideo.style.display = 'block';
+                    
+                    arOverlay.style.display = 'none'; // No overlay for step 2 live view
+                    canvas.style.display = 'none';
+                    arContainer.style.display = 'block';
+                    
+                    isFragmentCamActive = true;
+                    startFragmentCamBtn.innerHTML = "❌ Stop Live Feed";
+                    startFragmentCamBtn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
+                    captureFragmentBtn.style.display = 'inline-block';
+                    
+                    // Hide file input label
+                    imageUploadLabel.style.display = 'none';
+                    analyzeBtn.style.display = 'none';
+                    console.log("toggleFragmentCamera: Fragment live feed started successfully.");
+                } catch (err) {
+                    console.error("Error accessing camera:", err);
+                    alert("Could not access camera. Please ensure camera permissions are granted.");
+                }
+            } else {
+                console.log("toggleFragmentCamera: user requested stop. Invoking stopFragmentCamera.");
+                stopFragmentCamera();
+            }
+        }
+
+        function stopFragmentCamera() {
+            console.log("stopFragmentCamera called. fragmentStream =", fragmentStream);
+            if (fragmentStream) {
+                fragmentStream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log("Track stopped:", track.label);
+                });
+                fragmentStream = null;
+            }
+            arVideo.srcObject = null;
+            arContainer.style.display = 'none';
+            canvas.style.display = 'block';
+            
+            isFragmentCamActive = false;
+            startFragmentCamBtn.innerHTML = "📷 Start Live Feed";
+            startFragmentCamBtn.style.background = "linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)";
+            captureFragmentBtn.style.display = 'none';
+            
+            imageUploadLabel.style.display = 'inline-block';
+            if (selectedFile && currentMode === 'fragment') {
+                analyzeBtn.style.display = 'inline-block';
+            }
+            console.log("stopFragmentCamera: Fragment live stream fully closed.");
+        }
+
+        startFragmentCamBtn.addEventListener('click', toggleFragmentCamera);
+
+        captureFragmentBtn.addEventListener('click', () => {
+            if (!fragmentStream || !isFragmentCamActive) return;
+
+            // Draw current frame to displayCanvas
+            canvas.width = arVideo.videoWidth || arVideo.clientWidth || 800;
+            canvas.height = arVideo.videoHeight || arVideo.clientHeight || 800;
+            ctx.drawImage(arVideo, 0, 0, canvas.width, canvas.height);
+
+            // Create image object for canvas redraw / overlay
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            const img = new Image();
+            img.onload = function() {
+                currentImage = img;
+                
+                // Convert canvas to blob and upload
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+                    
+                    const file = new File([blob], "captured_fragment.jpg", { type: "image/jpeg" });
+                    selectedFile = file;
+                    currentMode = 'fragment';
+                    
+                    // Stop camera feed and return to display
+                    stopFragmentCamera();
+                    
+                    // Trigger analysis immediately
+                    await performAnalysis(file);
+                }, 'image/jpeg');
+            };
+            img.src = dataUrl;
         });
 
         // Draw Bounding Boxes and Labels
@@ -531,7 +885,6 @@
                 const [x1, y1, x2, y2] = det.box;
                 const width = x2 - x1;
                 const height = y2 - y1;
-                const id = det.id;
 
                 // Box style
                 ctx.strokeStyle = '#00ffea';
@@ -551,7 +904,7 @@
                 const fontSize = Math.max(14, Math.floor(canvas.height * 0.02));
                 ctx.font = `${fontSize}px Arial`;
                 
-                const displayId = id === "Unknown" ? "Unknown Match" : `Match: ${id.substring(0, 8)}...`;
+                const displayId = `Fragment #${det.piece_index}`;
                 const textWidth = ctx.measureText(displayId).width;
                 
                 ctx.beginPath();
@@ -563,6 +916,7 @@
                 ctx.fillText(displayId, x1 + 10, y1 - 8);
             });
         }
+
         // ── Step 3: Reassemble ─────────────────────────────────
         const reassembleBtn = document.getElementById('reassembleBtn');
         const resultTableWrap = document.getElementById('resultTableWrap');
@@ -596,6 +950,13 @@
 
                 // Populate results table
                 resultTableBody.innerHTML = '';
+                const getRotationText = (deg) => {
+                    if (!deg) return '0° (Correct)';
+                    if (deg === 90) return '90° (Rotate 270° CW)';
+                    if (deg === 180) return '180° (Rotate 180°)';
+                    if (deg === 270) return '270° (Rotate 90° CW)';
+                    return `${deg}°`;
+                };
                 result.results.forEach(piece => {
                     const row = document.createElement('tr');
                     const tx = piece.target_x !== null ? piece.target_x + 'px' : 'N/A';
@@ -607,7 +968,7 @@
                         <td><span class="badge badge-cyan">${piece.matched_grid_id}</span></td>
                         <td style="color:#64748b">(${cx}, ${cy})</td>
                         <td><span class="badge badge-green">(${tx}, ${ty})</span></td>
-                        <td>${piece.rotation_deg}°</td>
+                        <td>${getRotationText(piece.rotation_deg)}</td>
                         <td class="hint-text">${piece.direction_hint}</td>
                     `;
                     resultTableBody.appendChild(row);
@@ -615,9 +976,11 @@
 
                 resultTableWrap.classList.add('visible');
                 lastResults = result.results;
+                currentGridRows = result.grid_rows || 3;
+                currentGridCols = result.grid_cols || 3;
 
                 // Draw reassembled image
-                drawReassembledPuzzle(result.results, result.master_width, result.master_height, result.grid_scale);
+                drawReassembledPuzzle(result.results, result.master_width, result.master_height, result.grid_rows, result.grid_cols);
 
                 // Trigger Step 4: Instruction Generation
                 console.log("Automatically triggering fetchAssemblySteps...");
@@ -632,7 +995,7 @@
             }
         });
 
-        function drawReassembledPuzzle(results, master_width, master_height, grid_scale) {
+        function drawReassembledPuzzle(results, master_width, master_height, grid_rows, grid_cols) {
             const section = document.getElementById('reassembledOutputSection');
             const rCanvas = document.getElementById('reassembledCanvas');
             const rCtx = rCanvas.getContext('2d');
@@ -645,20 +1008,26 @@
             rCtx.fillStyle = '#0f172a';
             rCtx.fillRect(0, 0, rCanvas.width, rCanvas.height);
             
+            const rows = grid_rows || 3;
+            const cols = grid_cols || 3;
+            
             // Draw background grid lines
-            const scale = grid_scale || 3;
             rCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
             rCtx.lineWidth = 1;
-            for (let i = 1; i < scale; i++) {
-                // Vertical lines
+            
+            // Vertical lines
+            for (let i = 1; i < cols; i++) {
                 rCtx.beginPath();
-                rCtx.moveTo(i * rCanvas.width / scale, 0);
-                rCtx.lineTo(i * rCanvas.width / scale, rCanvas.height);
+                rCtx.moveTo(i * rCanvas.width / cols, 0);
+                rCtx.lineTo(i * rCanvas.width / cols, rCanvas.height);
                 rCtx.stroke();
-                // Horizontal lines
+            }
+            
+            // Horizontal lines
+            for (let i = 1; i < rows; i++) {
                 rCtx.beginPath();
-                rCtx.moveTo(0, i * rCanvas.height / scale);
-                rCtx.lineTo(rCanvas.width, i * rCanvas.height / scale);
+                rCtx.moveTo(0, i * rCanvas.height / rows);
+                rCtx.lineTo(rCanvas.width, i * rCanvas.height / rows);
                 rCtx.stroke();
             }
 
@@ -676,7 +1045,8 @@
                 rCtx.save();
                 rCtx.translate(tx, ty);
                 if (piece.rotation_deg) {
-                    rCtx.rotate((piece.rotation_deg * Math.PI) / 180);
+                    // Rotate in the opposite direction to cancel the physical rotation in the scattered image
+                    rCtx.rotate((-piece.rotation_deg * Math.PI) / 180);
                 }
                 
                 // Draw piece stretched/sized to perfectly fill the target grid slot
@@ -722,6 +1092,14 @@
         const listeningIndicator = document.getElementById('listeningIndicator');
         const listeningText = document.getElementById('listeningText');
 
+        // Web Audio visualizer variables
+        let audioCtx = null;
+        let analyser = null;
+        let visualizerStream = null;
+        let visualizerAnimationId = null;
+        const visualizerCanvas = document.getElementById('visualizerCanvas');
+        const visCtx = visualizerCanvas.getContext('2d');
+
         async function fetchAssemblySteps(fragmentData) {
             console.log("fetchAssemblySteps called with data:", fragmentData);
             if (!fragmentData || fragmentData.length === 0) {
@@ -764,12 +1142,48 @@
             assemblySteps.forEach((step, index) => {
                 const li = document.createElement('li');
                 li.className = `step-item ${index === currentStepIndex ? 'active' : ''}`;
+                li.onclick = () => {
+                    currentStepIndex = index;
+                    renderSteps();
+                    speakStep();
+                };
                 li.innerHTML = `
                     <div class="step-number">${index + 1}</div>
                     <div class="step-text">${step}</div>
                 `;
                 stepList.appendChild(li);
             });
+
+            // Update Progress Bar
+            const progressContainer = document.getElementById('assemblyProgressContainer');
+            const progressText = document.getElementById('progressText');
+            const progressBarFill = document.getElementById('progressBarFill');
+            const activePieceText = document.getElementById('activePieceText');
+
+            if (assemblySteps.length > 0) {
+                progressContainer.style.display = 'block';
+                
+                const completedPieces = currentStepIndex;
+                const totalPieces = assemblySteps.length;
+                const percent = Math.round((completedPieces / totalPieces) * 100);
+                
+                progressText.innerText = `Assembly Progress: ${completedPieces} / ${totalPieces} Pieces (${percent}%)`;
+                
+                const activeIdx = getActivePieceIndex();
+                activePieceText.innerText = activeIdx !== -1 ? `Active: Fragment #${activeIdx}` : 'Active: None';
+                progressBarFill.style.width = `${percent}%`;
+            } else {
+                progressContainer.style.display = 'none';
+            }
+
+            // Update Navigation Console button disable states
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (prevBtn && nextBtn) {
+                prevBtn.disabled = currentStepIndex === 0;
+                nextBtn.disabled = currentStepIndex >= assemblySteps.length;
+            }
         }
 
         function speakStep() {
@@ -821,7 +1235,86 @@
             listeningIndicator.classList.remove('active');
             listeningText.innerText = 'Vocal Assistant: Stopped';
             startGuideBtn.innerText = "Resume / Start Guide";
+            
+            // Stop real-time audio visualizer
+            stopVisualizer();
+            
+            if (visualizerStream) {
+                visualizerStream.getTracks().forEach(track => track.stop());
+                visualizerStream = null;
+            }
         }
+
+        function startVisualizer(stream) {
+            try {
+                stopVisualizer();
+
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 64;
+
+                const source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                visualizerCanvas.style.display = 'block';
+                drawWave();
+            } catch (err) {
+                console.error("Audio Visualizer Init Error:", err);
+            }
+        }
+
+        function drawWave() {
+            if (!isListening || !analyser) return;
+
+            visualizerAnimationId = requestAnimationFrame(drawWave);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteTimeDomainData(dataArray);
+
+            visCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+            visCtx.lineWidth = 2.5;
+            visCtx.strokeStyle = '#00f2fe';
+            visCtx.shadowColor = '#00f2fe';
+            visCtx.shadowBlur = 4;
+            visCtx.beginPath();
+
+            const sliceWidth = visualizerCanvas.width / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = (v * visualizerCanvas.height) / 2;
+
+                if (i === 0) {
+                    visCtx.moveTo(x, y);
+                } else {
+                    visCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            visCtx.lineTo(visualizerCanvas.width, visualizerCanvas.height / 2);
+            visCtx.stroke();
+            visCtx.shadowBlur = 0; // Reset
+        }
+
+        function stopVisualizer() {
+            if (visualizerAnimationId) {
+                cancelAnimationFrame(visualizerAnimationId);
+                visualizerAnimationId = null;
+            }
+            if (audioCtx) {
+                audioCtx.close().catch(() => {});
+                audioCtx = null;
+            }
+            analyser = null;
+            visualizerCanvas.style.display = 'none';
+        }
+
+        let lastVoiceCommandTime = 0;
+        const VOICE_COMMAND_DEBOUNCE_MS = 1500; // Debounce window of 1.5 seconds
 
         function startListening() {
             if (isListening) return;
@@ -833,15 +1326,29 @@
                 return;
             }
 
+            // Engage hardware constraints to denoise audio and pipe visual waveform
+            navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            }).then(stream => {
+                visualizerStream = stream;
+                startVisualizer(stream);
+            }).catch(err => {
+                console.warn("Could not start visualizer mic stream:", err);
+            });
+
             recognition = new SpeechRecognition();
             recognition.continuous = true;
-            recognition.interimResults = true; // Enabled interim results for instant recognition
+            recognition.interimResults = true;
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
                 isListening = true;
                 listeningIndicator.classList.add('active');
-                listeningText.innerText = 'Vocal Assistant: Listening for "Next"...';
+                listeningText.innerText = 'Vocal Assistant: Listening for commands...';
             };
 
             recognition.onresult = (event) => {
@@ -851,24 +1358,54 @@
                 }
                 console.log("Speech heard:", transcript);
                 
-                // Prevent self-triggering: Ignore recognition if the browser is currently speaking
-                if (window.speechSynthesis.speaking) {
-                    console.log("Ignored because assistant is currently speaking.");
+                // Debounce Time-lock filter to prevent Chrome double-triggering skipping steps
+                const now = Date.now();
+                if (now - lastVoiceCommandTime < VOICE_COMMAND_DEBOUNCE_MS) {
+                    console.log("Speech command locked / debounced.");
                     return;
                 }
 
-                if (transcript.match(/\b(next|continue|go on|forward|move on|yep|yes|ok)\b/i)) {
-                    if (currentStepIndex < assemblySteps.length) {
+                // Advanced overlapping voice support: user speech is parsed even while assistant is speaking!
+                const nextKeywords = ['next', 'continue', 'go on', 'forward', 'move on', 'yep', 'yes', 'ok', 'okay', 'done', 'placed', 'complete', 'finished', 'got it', 'next step', 'go ahead', 'right', 'sure', 'yup', 'next piece'];
+                const backKeywords = ['previous', 'back', 'go back', 'last step', 'last piece', 'before', 'reverse', 'prev', 'backwards', 'behind', 'go previous'];
+                const repeatKeywords = ['repeat', 'say that again', 'pardon', 'what', 'again', 'say again', 'repeat step', 'replay', 'once more', 'hear again', 'speak again'];
+
+                let matched = false;
+
+                // Match Next step
+                if (nextKeywords.some(k => new RegExp('\\b' + k + '\\b', 'i').test(transcript))) {
+                    if (currentStepIndex < assemblySteps.length - 1) {
+                        window.speechSynthesis.cancel(); // Interrupt vocal guide speaking instantly
                         currentStepIndex++;
                         speakStep();
+                        matched = true;
+                    } else if (currentStepIndex === assemblySteps.length - 1) {
+                        window.speechSynthesis.cancel();
+                        currentStepIndex++; // End state
+                        speakStep();
+                        matched = true;
                     }
-                } else if (transcript.match(/\b(previous|back|go back|last step)\b/i)) {
+                } 
+                // Match Previous step
+                else if (backKeywords.some(k => new RegExp('\\b' + k + '\\b', 'i').test(transcript))) {
                     if (currentStepIndex > 0) {
+                        window.speechSynthesis.cancel(); // Interrupt vocal guide speaking instantly
                         currentStepIndex--;
                         speakStep();
+                        matched = true;
                     }
-                } else if (transcript.match(/\b(repeat|say that again|pardon|what)\b/i)) {
+                } 
+                // Match Repeat step
+                else if (repeatKeywords.some(k => new RegExp('\\b' + k + '\\b', 'i').test(transcript))) {
+                    window.speechSynthesis.cancel(); // Interrupt vocal guide speaking instantly
                     speakStep();
+                    matched = true;
+                }
+
+                if (matched) {
+                    lastVoiceCommandTime = now;
+                    // Stop recognition temporarily and restart to wipe the current recognized transcript
+                    recognition.stop();
                 }
             };
 
@@ -886,8 +1423,10 @@
                     setTimeout(() => { if (shouldListen && !isListening) recognition.start(); }, 1000);
                 } else if (!shouldListen) {
                     listeningText.innerText = 'Vocal Assistant: Stopped';
+                    stopVisualizer();
                 } else {
                     listeningText.innerText = 'Vocal Assistant: Finished';
+                    stopVisualizer();
                 }
             };
 
@@ -899,67 +1438,443 @@
         const arVideo = document.getElementById('arVideo');
         const arOverlay = document.getElementById('arOverlay');
 
-        async function startARMode() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                arVideo.srcObject = stream;
-                
-                arVideo.onloadedmetadata = () => {
-                    arOverlay.width = arContainer.clientWidth;
-                    arOverlay.height = arContainer.clientHeight;
-                    drawGhostOverlay();
-                };
+        // Advanced AR Overlay Controls
+        const arSourceSelect = document.getElementById('arSourceSelect');
+        const arOpacitySlider = document.getElementById('arOpacitySlider');
+        const arOpacityVal = document.getElementById('arOpacityVal');
+        const arCameraToggle = document.getElementById('arCameraToggle');
 
-                canvas.style.display = 'none';
-                arContainer.style.display = 'block';
-                isARMode = true;
-                
-                // Keep redrawing if needed or handle resizing
-                window.addEventListener('resize', () => {
-                    if(isARMode) {
-                        arOverlay.width = arContainer.clientWidth;
-                        arOverlay.height = arContainer.clientHeight;
-                        drawGhostOverlay();
-                    }
-                });
-            } catch (err) {
-                console.error("Error accessing camera:", err);
-                alert("Could not access camera. Please ensure you have granted camera permissions.");
+        arOpacitySlider.addEventListener('input', () => {
+            arOpacityVal.innerText = arOpacitySlider.value + "%";
+            if (isARMode && arSourceSelect.value !== 'simulation') {
+                drawGhostOverlay();
             }
+        });
+
+        arSourceSelect.addEventListener('change', () => {
+            if (isARMode && arSourceSelect.value !== 'simulation') {
+                drawGhostOverlay();
+            }
+        });
+
+        arCameraToggle.addEventListener('change', async () => {
+            if (isARMode) {
+                if (arCameraToggle.checked) {
+                    if (!arVideo.srcObject) {
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                            arVideo.srcObject = stream;
+                            arVideo.style.display = 'block';
+                        } catch (err) {
+                            console.error(err);
+                            alert("Failed to start camera.");
+                            arCameraToggle.checked = false;
+                        }
+                    } else {
+                        arVideo.style.display = 'block';
+                    }
+                } else {
+                    if (arVideo.srcObject) {
+                        arVideo.srcObject.getTracks().forEach(track => track.stop());
+                        arVideo.srcObject = null;
+                    }
+                    arVideo.style.display = 'none';
+                }
+            }
+        });
+
+        // ── Continuous Animation Engine ────────────────────────
+        let animationFrameId = null;
+        let animationStartTime = null;
+        let lastStepIndex = -1;
+        const ANIMATION_DURATION = 3500; // 3.5 seconds loop duration
+
+        function easeInOutQuad(t) {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
         }
 
-        function drawGhostOverlay() {
+        function arRenderLoop(timestamp) {
+            if (!isARMode) return;
+
+            // Detect vocal step changes and restart animation seamlessly
+            if (currentStepIndex !== lastStepIndex) {
+                lastStepIndex = currentStepIndex;
+                animationStartTime = timestamp;
+            }
+
+            if (!animationStartTime) {
+                animationStartTime = timestamp;
+            }
+
+            const elapsed = timestamp - animationStartTime;
+            const progress = (elapsed % ANIMATION_DURATION) / ANIMATION_DURATION;
+
+            drawGhostOverlay(progress, timestamp);
+
+            animationFrameId = requestAnimationFrame(arRenderLoop);
+        }
+
+        function getActivePieceIndex() {
+            if (!assemblySteps || assemblySteps.length === 0) return -1;
+            const currentStepText = assemblySteps[currentStepIndex];
+            if (!currentStepText) return -1;
+            
+            // Matches "Fragment #1" or "Fragment 1" or "Piece 1" or "Piece #1"
+            const match = currentStepText.match(/Fragment\s*#?(\d+)/i) || currentStepText.match(/Piece\s*#?(\d+)/i);
+            if (match) {
+                return parseInt(match[1], 10);
+            }
+            
+            // Fallback to array index match
+            if (lastResults && lastResults[currentStepIndex]) {
+                return lastResults[currentStepIndex].piece_index;
+            }
+            return -1;
+        }
+
+        function drawPieceOnOverlay(ctxOverlay, piece, cx, cy, rotation, opacity, offsetX, offsetY, scale) {
+            if (!currentImage) return;
+            const [x1, y1, x2, y2] = piece.current_box;
+            const pw = x2 - x1;
+            const ph = y2 - y1;
+            
+            const tw = (piece.target_w || pw) * scale;
+            const th = (piece.target_h || ph) * scale;
+            
+            const canvasCx = offsetX + cx * scale;
+            const canvasCy = offsetY + cy * scale;
+            
+            ctxOverlay.save();
+            ctxOverlay.globalAlpha = opacity;
+            ctxOverlay.translate(canvasCx, canvasCy);
+            if (rotation) {
+                ctxOverlay.rotate(rotation * Math.PI / 180);
+            }
+            
+            ctxOverlay.drawImage(
+                currentImage,
+                x1, y1, pw, ph,
+                -tw / 2, -th / 2, tw, th
+            );
+            
+            // subtle highlight border
+            ctxOverlay.strokeStyle = 'rgba(0, 255, 234, 0.4)';
+            ctxOverlay.lineWidth = 1;
+            ctxOverlay.strokeRect(-tw / 2, -th / 2, tw, th);
+            ctxOverlay.restore();
+        }
+
+        function drawGhostOverlay(progress, timestamp) {
             const ctxOverlay = arOverlay.getContext('2d');
             ctxOverlay.clearRect(0, 0, arOverlay.width, arOverlay.height);
             
-            const imgToDraw = masterImage || currentImage;
-            if (imgToDraw) {
-                ctxOverlay.globalAlpha = 0.3; // Semi-transparent
-                
-                const scale = Math.min(arOverlay.width / imgToDraw.width, arOverlay.height / imgToDraw.height);
-                const drawWidth = imgToDraw.width * scale;
-                const drawHeight = imgToDraw.height * scale;
-                const x = (arOverlay.width / 2) - (drawWidth / 2);
-                const y = (arOverlay.height / 2) - (drawHeight / 2);
-                
-                ctxOverlay.drawImage(imgToDraw, x, y, drawWidth, drawHeight);
-                ctxOverlay.globalAlpha = 1.0;
+            const source = arSourceSelect.value;
+            
+            if (source === 'simulation') {
+                if (!lastResults || lastResults.length === 0) {
+                    ctxOverlay.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctxOverlay.font = '16px Segoe UI, Arial';
+                    ctxOverlay.textAlign = 'center';
+                    ctxOverlay.fillText('⚠️ Please upload fragments and reassemble first to activate simulation.', arOverlay.width / 2, arOverlay.height / 2);
+                    return;
+                }
 
-                // Draw a simple 3x3 grid for guidance
-                ctxOverlay.strokeStyle = 'rgba(0, 255, 234, 0.5)';
+                let blueprintImg = null;
+                const rCanvas = document.getElementById('reassembledCanvas');
+                if (rCanvas && document.getElementById('reassembledOutputSection').style.display !== 'none') {
+                    blueprintImg = rCanvas;
+                } else {
+                    blueprintImg = masterImage || currentImage;
+                }
+
+                if (!blueprintImg || !currentImage) return;
+
+                const W = arOverlay.width;
+                const H = arOverlay.height;
+
+                // ── VIEWPORT SPLIT LAYOUT ──
+                // Left Viewport (Workspace scattered fragments) - occupies 45% of width
+                const x_start_L = 10;
+                const y_start_L = 40; // leaving room for title
+                const w_viewport_L = W * 0.45;
+                const h_viewport_L = H - 50;
+
+                // Right Viewport (Assembly blueprint) - occupies 45% of width
+                const x_start_R = W * 0.53;
+                const y_start_R = 40;
+                const w_viewport_R = W * 0.45;
+                const h_viewport_R = H - 50;
+
+                // Calculate scales and offsets independently
+                const Cw = currentImage.width;
+                const Ch = currentImage.height;
+                const scaleC = Math.min(w_viewport_L / Cw, h_viewport_L / Ch);
+                const draw_w_C = Cw * scaleC;
+                const draw_h_C = Ch * scaleC;
+                const offsetX_C = x_start_L + (w_viewport_L - draw_w_C) / 2;
+                const offsetY_C = y_start_L + (h_viewport_L - draw_h_C) / 2;
+
+                const Bw = blueprintImg.width;
+                const Bh = blueprintImg.height;
+                const scaleB = Math.min(w_viewport_R / Bw, h_viewport_R / Bh);
+                const draw_w_B = Bw * scaleB;
+                const draw_h_B = Bh * scaleB;
+                const offsetX_B = x_start_R + (w_viewport_R - draw_w_B) / 2;
+                const offsetY_B = y_start_R + (h_viewport_R - draw_h_B) / 2;
+
+                // ── DRAW GLOWING TITLES AND MID-LINE DIVIDER ──
+                ctxOverlay.save();
+                // Divider Line
+                ctxOverlay.strokeStyle = 'rgba(0, 242, 254, 0.15)';
                 ctxOverlay.lineWidth = 2;
-                
-                for(let i=1; i<3; i++) {
+                ctxOverlay.setLineDash([8, 8]);
+                ctxOverlay.beginPath();
+                ctxOverlay.moveTo(W / 2, 20);
+                ctxOverlay.lineTo(W / 2, H - 20);
+                ctxOverlay.stroke();
+
+                // Left Label
+                ctxOverlay.fillStyle = 'rgba(0, 242, 254, 0.7)';
+                ctxOverlay.font = 'bold 12px Segoe UI, Arial';
+                ctxOverlay.textAlign = 'center';
+                ctxOverlay.fillText('WORKSPACE TABLE (SCATTERED GHOST)', W * 0.23, 25);
+
+                // Right Label
+                ctxOverlay.fillStyle = 'rgba(139, 92, 246, 0.7)';
+                ctxOverlay.fillText('ASSEMBLY BLUEPRINT (SOLVED TARGET)', W * 0.76, 25);
+                ctxOverlay.restore();
+
+                // ── 1. DRAW SCATTERED GHOST BACKGROUND IN LEFT VIEWPORT ──
+                ctxOverlay.save();
+                ctxOverlay.globalAlpha = 0.08; // very faint scattered background image
+                ctxOverlay.drawImage(currentImage, offsetX_C, offsetY_C, draw_w_C, draw_h_C);
+                ctxOverlay.restore();
+
+                // ── 2. DRAW FAINT TARGET BLUEPRINT IN RIGHT VIEWPORT ──
+                ctxOverlay.save();
+                ctxOverlay.globalAlpha = 0.15; // faint blueprint
+                ctxOverlay.drawImage(blueprintImg, offsetX_B, offsetY_B, draw_w_B, draw_h_B);
+                ctxOverlay.restore();
+
+                // ── 3. DRAW RIGHT TARGET GRID Guidance lines ──
+                ctxOverlay.save();
+                ctxOverlay.strokeStyle = 'rgba(0, 255, 234, 0.12)';
+                ctxOverlay.lineWidth = 1;
+                const rows = currentGridRows || 3;
+                const cols = currentGridCols || 3;
+                for (let i = 1; i < cols; i++) {
                     ctxOverlay.beginPath();
-                    ctxOverlay.moveTo(x + (drawWidth / 3) * i, y);
-                    ctxOverlay.lineTo(x + (drawWidth / 3) * i, y + drawHeight);
-                    ctxOverlay.stroke();
-                    
-                    ctxOverlay.beginPath();
-                    ctxOverlay.moveTo(x, y + (drawHeight / 3) * i);
-                    ctxOverlay.lineTo(x + drawWidth, y + (drawHeight / 3) * i);
+                    ctxOverlay.moveTo(offsetX_B + (draw_w_B / cols) * i, offsetY_B);
+                    ctxOverlay.lineTo(offsetX_B + (draw_w_B / cols) * i, offsetY_B + draw_h_B);
                     ctxOverlay.stroke();
                 }
+                for (let i = 1; i < rows; i++) {
+                    ctxOverlay.beginPath();
+                    ctxOverlay.moveTo(offsetX_B, offsetY_B + (draw_h_B / rows) * i);
+                    ctxOverlay.lineTo(offsetX_B + draw_w_B, offsetY_B + (draw_h_B / rows) * i);
+                    ctxOverlay.stroke();
+                }
+                ctxOverlay.restore();
+
+                // ── 4. DRAW WORKSPACE FRAGMENTS GHOST OVERLAY (ALL fragments at scattered positions) ──
+                // Draws crop of every piece in Left Viewport at 18% opacity, fulfilling Requirement 1 perfectly
+                lastResults.forEach(piece => {
+                    const [x1, y1, x2, y2] = piece.current_box;
+                    const cx = (x1 + x2) / 2;
+                    const cy = (y1 + y2) / 2;
+                    drawPieceOnOverlay(ctxOverlay, piece, cx, cy, 0, 0.18, offsetX_C, offsetY_C, scaleC);
+                });
+
+                // ── 5. DRAW COMPLETED PIECES IN SOLVED RIGHT VIEWPORT ──
+                const activePieceIdxNum = getActivePieceIndex();
+
+                lastResults.forEach((piece, i) => {
+                    const isCompleted = i < currentStepIndex;
+                    if (isCompleted) {
+                        if (piece.target_x !== null && piece.target_y !== null) {
+                            // Map target center coords to Right Viewport
+                            drawPieceOnOverlay(ctxOverlay, piece, piece.target_x, piece.target_y, -piece.rotation_deg, 0.75, offsetX_B, offsetY_B, scaleB);
+                        }
+                    }
+                });
+
+                // ── 6. DRAW ANIMATING ACTIVE PIECE CROSSING VIEWPORTS ──
+                const activePiece = lastResults.find(p => p.piece_index === activePieceIdxNum);
+                if (activePiece) {
+                    const [x1, y1, x2, y2] = activePiece.current_box;
+                    const start_cx = (x1 + x2) / 2;
+                    const start_cy = (y1 + y2) / 2;
+                    const target_cx = activePiece.target_x;
+                    const target_cy = activePiece.target_y;
+
+                    if (target_cx !== null && target_cy !== null) {
+                        const p = easeInOutQuad(progress || 0);
+
+                        // Interpolated Canvas Coordinates from Left Viewport to Right Viewport
+                        const canvas_start_x = offsetX_C + start_cx * scaleC;
+                        const canvas_start_y = offsetY_C + start_cy * scaleC;
+                        const canvas_target_x = offsetX_B + target_cx * scaleB;
+                        const canvas_target_y = offsetY_B + target_cy * scaleB;
+
+                        const cur_cx_canvas = canvas_start_x + (canvas_target_x - canvas_start_x) * p;
+                        const cur_cy_canvas = canvas_start_y + (canvas_target_y - canvas_start_y) * p;
+                        const cur_scale = scaleC + (scaleB - scaleC) * p;
+                        const cur_rot = -activePiece.rotation_deg * p;
+
+                        // Draw Path Dotted Trail connecting Left and Right Viewports
+                        ctxOverlay.save();
+                        ctxOverlay.strokeStyle = 'rgba(0, 242, 254, 0.35)';
+                        ctxOverlay.lineWidth = 2;
+                        ctxOverlay.setLineDash([4, 4]);
+                        ctxOverlay.beginPath();
+                        ctxOverlay.moveTo(canvas_start_x, canvas_start_y);
+                        ctxOverlay.lineTo(canvas_target_x, canvas_target_y);
+                        ctxOverlay.stroke();
+                        ctxOverlay.restore();
+
+                        // Draw Solved Bounding Target Box Glow on the right
+                        const target_w_canvas = activePiece.target_w * scaleB;
+                        const target_h_canvas = activePiece.target_h * scaleB;
+
+                        ctxOverlay.save();
+                        ctxOverlay.strokeStyle = '#00ffea';
+                        ctxOverlay.lineWidth = 2;
+                        ctxOverlay.shadowColor = '#00ffea';
+                        ctxOverlay.shadowBlur = 10;
+                        ctxOverlay.strokeRect(canvas_target_x - target_w_canvas / 2, canvas_target_y - target_h_canvas / 2, target_w_canvas, target_h_canvas);
+                        ctxOverlay.restore();
+
+                        // Draw Animating Piece itself (directly at interpolated canvas positions)
+                        const pw = x2 - x1;
+                        const ph = y2 - y1;
+                        const tw = (activePiece.target_w || pw) * cur_scale;
+                        const th = (activePiece.target_h || ph) * cur_scale;
+
+                        ctxOverlay.save();
+                        ctxOverlay.globalAlpha = 0.95;
+                        ctxOverlay.translate(cur_cx_canvas, cur_cy_canvas);
+                        if (cur_rot) {
+                            ctxOverlay.rotate(cur_rot * Math.PI / 180);
+                        }
+                        ctxOverlay.drawImage(
+                            currentImage,
+                            x1, y1, pw, ph,
+                            -tw / 2, -th / 2, tw, th
+                        );
+                        ctxOverlay.strokeStyle = 'rgba(0, 255, 234, 0.6)';
+                        ctxOverlay.lineWidth = 1.5;
+                        ctxOverlay.strokeRect(-tw / 2, -th / 2, tw, th);
+                        ctxOverlay.restore();
+
+                        // Draw Pulsing Sci-Fi holographic Ring around Animating Piece
+                        ctxOverlay.save();
+                        ctxOverlay.strokeStyle = '#8b5cf6';
+                        ctxOverlay.lineWidth = 2;
+                        ctxOverlay.shadowColor = '#8b5cf6';
+                        ctxOverlay.shadowBlur = 8;
+                        ctxOverlay.beginPath();
+                        ctxOverlay.arc(cur_cx_canvas, cur_cy_canvas, Math.max(tw, th) / 2 + 8 + Math.sin(timestamp / 120) * 4, 0, 2 * Math.PI);
+                        ctxOverlay.stroke();
+                        ctxOverlay.restore();
+                    }
+                }
+            } else {
+                // Static Ghost Overlay Modes
+                let imgToDraw = null;
+                if (source === 'reassembled') {
+                    const rCanvas = document.getElementById('reassembledCanvas');
+                    if (rCanvas && document.getElementById('reassembledOutputSection').style.display !== 'none') {
+                        imgToDraw = rCanvas;
+                    }
+                } else if (source === 'master') {
+                    imgToDraw = masterImage;
+                } else if (source === 'fragment') {
+                    imgToDraw = currentImage;
+                }
+
+                if (!imgToDraw) {
+                    imgToDraw = masterImage || currentImage;
+                }
+
+                if (imgToDraw) {
+                    const opacity = parseFloat(arOpacitySlider.value) / 100.0;
+                    ctxOverlay.globalAlpha = opacity;
+                    
+                    const scale = Math.min(arOverlay.width / imgToDraw.width, arOverlay.height / imgToDraw.height);
+                    const drawWidth = imgToDraw.width * scale;
+                    const drawHeight = imgToDraw.height * scale;
+                    const x = (arOverlay.width / 2) - (drawWidth / 2);
+                    const y = (arOverlay.height / 2) - (drawHeight / 2);
+                    
+                    ctxOverlay.drawImage(imgToDraw, x, y, drawWidth, drawHeight);
+                    ctxOverlay.globalAlpha = 1.0;
+
+                    // Draw a dynamic grid for guidance based on the actual grid rows/cols solved
+                    ctxOverlay.strokeStyle = 'rgba(0, 255, 234, 0.4)';
+                    ctxOverlay.lineWidth = 1.5;
+                    
+                    const rows = currentGridRows || 3;
+                    const cols = currentGridCols || 3;
+                    
+                    for (let i = 1; i < cols; i++) {
+                        ctxOverlay.beginPath();
+                        ctxOverlay.moveTo(x + (drawWidth / cols) * i, y);
+                        ctxOverlay.lineTo(x + (drawWidth / cols) * i, y + drawHeight);
+                        ctxOverlay.stroke();
+                    }
+                    
+                    for (let i = 1; i < rows; i++) {
+                        ctxOverlay.beginPath();
+                        ctxOverlay.moveTo(x, y + (drawHeight / rows) * i);
+                        ctxOverlay.lineTo(x + drawWidth, y + (drawHeight / rows) * i);
+                        ctxOverlay.stroke();
+                    }
+                }
+            }
+        }
+
+        function handleArResize() {
+            if (isARMode) {
+                arOverlay.width = arContainer.clientWidth;
+                arOverlay.height = arContainer.clientHeight;
+            }
+        }
+
+        async function startARMode() {
+            try {
+                // Set the overlay to be visible
+                arOverlay.style.display = 'block';
+                
+                if (arCameraToggle.checked) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    arVideo.srcObject = stream;
+                    arVideo.style.display = 'block';
+                } else {
+                    arVideo.srcObject = null;
+                    arVideo.style.display = 'none';
+                }
+                
+                arOverlay.width = arContainer.clientWidth || 800;
+                arOverlay.height = arContainer.clientHeight || 800;
+                
+                isARMode = true;
+                
+                // Trigger animation loop initialization
+                animationStartTime = null;
+                lastStepIndex = -1;
+                if (!animationFrameId) {
+                    animationFrameId = requestAnimationFrame(arRenderLoop);
+                }
+
+                canvas.style.display = 'none';
+                arContainer.style.display = 'block';
+                
+                document.querySelector('.container').classList.add('active-ar');
+                
+                window.addEventListener('resize', handleArResize);
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                alert("Could not access camera. Try disabling the 'Enable Camera' toggle to view the overlay statically.");
             }
         }
 
@@ -989,8 +1904,17 @@
             arContainer.style.display = 'none';
             canvas.style.display = 'block';
             isARMode = false;
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            document.querySelector('.container').classList.remove('active-ar');
+            
             visualizeBtn.innerText = '\u25B6 Start AR Overlay';
             stopArBtn.style.display = 'none';
+            window.removeEventListener('resize', handleArResize);
         }
 
         visualizeBtn.addEventListener('click', () => {
@@ -998,14 +1922,40 @@
                 startARMode();
                 visualizeBtn.innerText = '\u23F8 AR Running...';
                 stopArBtn.style.display = 'inline-block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                if (window.innerWidth <= 1024) {
+                    document.querySelector('.container').scrollIntoView({ behavior: 'smooth' });
+                }
             } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                if (window.innerWidth <= 1024) {
+                    document.querySelector('.container').scrollIntoView({ behavior: 'smooth' });
+                }
             }
         });
 
         stopArBtn.addEventListener('click', () => {
             stopARMode();
+        });
+
+        // ── Console Navigation Buttons Event Bindings ───────────
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentStepIndex > 0) {
+                window.speechSynthesis.cancel();
+                currentStepIndex--;
+                speakStep();
+            }
+        });
+
+        document.getElementById('repeatBtn').addEventListener('click', () => {
+            window.speechSynthesis.cancel();
+            speakStep();
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentStepIndex < assemblySteps.length) {
+                window.speechSynthesis.cancel();
+                currentStepIndex++;
+                speakStep();
+            }
         });
     </script>
 </body>

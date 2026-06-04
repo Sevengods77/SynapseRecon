@@ -27,6 +27,38 @@ from detection_utils import find_pieces_by_template, find_pieces_by_background_s
 # Load environment variables (API Keys)
 load_dotenv()
 
+SUPPORTED_GRIDS = [
+    (2, 2),
+    (2, 3), (3, 2),
+    (3, 3),
+    (3, 4), (4, 3),
+    (3, 5), (5, 3),
+    (4, 4),
+    (4, 5), (5, 4),
+    (4, 6), (6, 4),
+    (5, 5),
+    (5, 6), (6, 5),
+    (6, 6)
+]
+
+def find_best_grid_config(num_pieces, master_w, master_h):
+    target_ratio = master_w / master_h
+    configs_with_diff = []
+    for r, c in SUPPORTED_GRIDS:
+        diff_total = abs(r * c - num_pieces)
+        configs_with_diff.append((diff_total, (r, c)))
+    min_diff = min(d for d, _ in configs_with_diff)
+    candidates = [cfg for d, cfg in configs_with_diff if d == min_diff]
+    best_cfg = candidates[0]
+    min_ratio_diff = float('inf')
+    for r, c in candidates:
+        ratio = c / r
+        ratio_diff = abs(ratio - target_ratio)
+        if ratio_diff < min_ratio_diff:
+            min_ratio_diff = ratio_diff
+            best_cfg = (r, c)
+    return best_cfg
+
 def get_best_grid(w, h, min_f=8, max_f=12):
     """
     Finds the best (rows, cols) pair such that rows * cols is between min_f and max_f,
@@ -81,7 +113,7 @@ Rules:
 1. Exactly one instruction per fragment.
 2. NEVER use the word "next". Use varied transitions like "Then", "Now", "Following that", "Moving on".
 3. DO NOT output robotic coordinates or say "row X", "column Y", or "out of". Instead, mentally translate the grid coordinates into natural regions of the puzzle (e.g., "the top-left corner", "the upper edge", "the lower-right area", "the center").
-4. Identify pieces using descriptive labels based on their starting area (e.g., "Find the fragment in the bottom right of your workspace", "Look for the piece on the top left"), rather than just calling them "Piece 1".
+4. Identify pieces using their assigned Fragment number (e.g., "Fragment 1", "Fragment 2"). Clearly state which fragment is being placed by starting with its label (e.g., "Take Fragment 1..."), describe its initial location in the workspace, and specify where it should be placed in the final puzzle (e.g. top-left corner, center, bottom-right).
 5. Describe the movement naturally (e.g., "Slide it upwards and slightly to the right to form the top edge").
 6. Output ONLY a raw JSON array of strings, without any markdown formatting or introductory text.
 """
@@ -198,9 +230,7 @@ async def ingest_master(file: UploadFile = File(...)):
         pipeline_state["master_crops"] = master_crops
         print(f"  Saved master crops for {best_rows}x{best_cols} grid in pipeline_state.")
 
-        # Build a multi-scale spatial pyramid — supports any number of puzzle pieces
-        grid_scales = [2, 3, 4, 5, 6, 8, 10, 12]
-
+        # Build a multi-scale spatial pyramid with 4 rotations — supports non-square grid scales
         ingested_count = 0
 
         # Clear existing data
@@ -209,12 +239,19 @@ async def ingest_master(file: UploadFile = File(...)):
             collection.delete(ids=existing_data['ids'])
             print(f"  Cleared {len(existing_data['ids'])} existing entries from database.")
 
-        for scale in grid_scales:
-            piece_w = img_width / scale
-            piece_h = img_height / scale
+        rotations = [
+            (0, lambda img: img),
+            (90, lambda img: img.transpose(Image.ROTATE_90)),
+            (180, lambda img: img.transpose(Image.ROTATE_180)),
+            (270, lambda img: img.transpose(Image.ROTATE_270))
+        ]
 
-            for r in range(scale):
-                for c in range(scale):
+        for rows, cols in SUPPORTED_GRIDS:
+            piece_w = img_width / cols
+            piece_h = img_height / rows
+
+            for r in range(rows):
+                for c in range(cols):
                     x1 = int(c * piece_w)
                     y1 = int(r * piece_h)
                     x2 = int((c + 1) * piece_w)
@@ -222,19 +259,28 @@ async def ingest_master(file: UploadFile = File(...)):
 
                     crop = image.crop((x1, y1, x2, y2))
 
-                    inputs = processor(images=crop, return_tensors="pt").to(device)
-                    with torch.no_grad():
-                        outputs = dino_model(**inputs)
+                    for rot_deg, rot_fn in rotations:
+                        rotated_crop = rot_fn(crop)
+                        inputs = processor(images=rotated_crop, return_tensors="pt").to(device)
+                        with torch.no_grad():
+                            outputs = dino_model(**inputs)
 
-                    features = outputs.pooler_output.squeeze().cpu().numpy().tolist()
-                    piece_id = f"Grid_{scale}x{scale}_{r}_{c}"
+                        features = outputs.pooler_output.squeeze().cpu().numpy().tolist()
+                        piece_id = f"Grid_{rows}x{cols}_{r}_{c}_rot{rot_deg}"
 
-                    collection.add(
-                        embeddings=[features],
-                        metadatas=[{"box": f"{x1},{y1},{x2},{y2}", "scale": str(scale), "row": str(r), "col": str(c)}],
-                        ids=[piece_id]
-                    )
-                    ingested_count += 1
+                        collection.add(
+                            embeddings=[features],
+                            metadatas=[{
+                                "box": f"{x1},{y1},{x2},{y2}",
+                                "rows": str(rows),
+                                "cols": str(cols),
+                                "row": str(r),
+                                "col": str(c),
+                                "rotation": str(rot_deg)
+                            }],
+                            ids=[piece_id]
+                        )
+                        ingested_count += 1
 
         return {
             "success": True,
@@ -327,8 +373,16 @@ async def analyze_image(file: UploadFile = File(...)):
             
             # Now we have detected_boxes from Layer 2 or Layer 3. We extract features and match them.
             num_pieces = len(detected_boxes)
-            best_scale = max(2, round(math.sqrt(num_pieces))) if num_pieces > 0 else 3
-            print(f"  Detected {num_pieces} fragments. Forcing grid matching to {best_scale}x{best_scale}.")
+            
+            # Find best grid configuration
+            master_w, master_h = img_w, img_h # fallback
+            master_img = pipeline_state.get("master_img")
+            if master_img is not None:
+                master_h, master_w = master_img.shape[:2]
+                
+            grid_rows, grid_cols = find_best_grid_config(num_pieces, master_w, master_h)
+            best_scale_str = f"{grid_rows}x{grid_cols}"
+            print(f"  Detected {num_pieces} fragments. Matching to grid {best_scale_str}.")
             
             # Extract features for all pieces
             all_features = []
@@ -346,53 +400,76 @@ async def analyze_image(file: UploadFile = File(...)):
             # Perform optimal 1-to-1 Bipartite Matching (Linear Sum Assignment)
             matched_ids = ["Unknown"] * num_pieces
             match_distances = [None] * num_pieces
+            matched_rotations = [0] * num_pieces
             
             if num_pieces > 0:
                 try:
                     from scipy.optimize import linear_sum_assignment
+                    
+                    # Query ChromaDB for all entries matching this grid configuration
                     db_results = collection.query(
                         query_embeddings=all_features,
-                        n_results=best_scale * best_scale, # Fetch all grid cells for this scale
-                        where={"scale": str(best_scale)}
+                        n_results=grid_rows * grid_cols * 4, # Fetch all rotations
+                        where={"rows": str(grid_rows), "cols": str(grid_cols)}
                     )
                     
-                    # Collect all unique cell IDs
-                    unique_cell_ids = []
-                    for ids_list in db_results['ids']:
-                        for cid in ids_list:
-                            if cid not in unique_cell_ids:
-                                unique_cell_ids.append(cid)
-                                
-                    # Build Cost Matrix (rows = pieces, cols = unique grid cells)
-                    cost_matrix = np.full((num_pieces, len(unique_cell_ids)), 1000.0)
+                    # Unique cell keys
+                    unique_cells = []
+                    for r in range(grid_rows):
+                        for c in range(grid_cols):
+                            unique_cells.append((r, c))
+                            
+                    # Cost matrix: rows = pieces, cols = unique cells
+                    cost_matrix = np.full((num_pieces, len(unique_cells)), 1000.0)
+                    best_rotations_for_pair = {}
+                    
                     for i in range(num_pieces):
                         dists = db_results['distances'][i]
                         ids = db_results['ids'][i]
-                        for j, cid in enumerate(ids):
-                            col_idx = unique_cell_ids.index(cid)
-                            cost_matrix[i, col_idx] = dists[j]
+                        metadatas = db_results['metadatas'][i]
+                        
+                        for dist, cid, meta in zip(dists, ids, metadatas):
+                            row = int(meta['row'])
+                            col = int(meta['col'])
+                            rot = int(meta.get('rotation', 0))
                             
-                    # Solve assignment to guarantee no two pieces are assigned to the same grid cell
+                            cell = (row, col)
+                            if cell in unique_cells:
+                                col_idx = unique_cells.index(cell)
+                                if dist < cost_matrix[i, col_idx]:
+                                    cost_matrix[i, col_idx] = dist
+                                    best_rotations_for_pair[(i, col_idx)] = rot
+                                    
+                    # Solve assignment
                     row_ind, col_ind = linear_sum_assignment(cost_matrix)
-                    for i, r in enumerate(row_ind):
-                        c = col_ind[i]
-                        matched_ids[r] = unique_cell_ids[c]
+                    for idx, r in enumerate(row_ind):
+                        c = col_ind[idx]
+                        cell_r, cell_c = unique_cells[c]
+                        rot = best_rotations_for_pair.get((r, c), 0)
+                        
+                        matched_ids[r] = f"Grid_{grid_rows}x{grid_cols}_{cell_r}_{cell_c}"
                         match_distances[r] = round(cost_matrix[r, c], 4)
+                        matched_rotations[r] = rot
                 except Exception as e:
                     print(f"Bipartite matching failed: {e}. Falling back to greedy assignment.")
-                    used_ids = set()
+                    used_cells = set()
                     for i in range(num_pieces):
                         try:
                             db_result = collection.query(
                                 query_embeddings=[all_features[i]], 
-                                n_results=best_scale * best_scale,
-                                where={"scale": str(best_scale)}
+                                n_results=grid_rows * grid_cols * 4,
+                                where={"rows": str(grid_rows), "cols": str(grid_cols)}
                             )
-                            for j, cid in enumerate(db_result['ids'][0]):
-                                if cid not in used_ids:
-                                    matched_ids[i] = cid
-                                    match_distances[i] = round(db_result['distances'][0][j], 4)
-                                    used_ids.add(cid)
+                            for dist, cid, meta in zip(db_result['distances'][0], db_result['ids'][0], db_result['metadatas'][0]):
+                                row = int(meta['row'])
+                                col = int(meta['col'])
+                                rot = int(meta.get('rotation', 0))
+                                cell = (row, col)
+                                if cell not in used_cells:
+                                    matched_ids[i] = f"Grid_{grid_rows}x{grid_cols}_{row}_{col}"
+                                    match_distances[i] = round(dist, 4)
+                                    matched_rotations[i] = rot
+                                    used_cells.add(cell)
                                     break
                         except Exception as qe:
                             matched_ids[i] = "Error"
@@ -404,6 +481,7 @@ async def analyze_image(file: UploadFile = File(...)):
                     "id": matched_ids[idx],
                     "match_distance": match_distances[idx],
                     "box": [x1, y1, x2, y2],
+                    "rotation_deg": matched_rotations[idx]
                 }
                 final_detections.append(piece_data)
 
@@ -431,7 +509,8 @@ async def analyze_image(file: UploadFile = File(...)):
                         "piece_index": label + 1,
                         "id": best_item["id"],
                         "match_distance": best_item.get("match_distance"),
-                        "box": [cx1, cy1, cx2, cy2]
+                        "box": [cx1, cy1, cx2, cy2],
+                        "rotation_deg": best_item.get("rotation_deg", 0)
                     })
                 final_detections = new_detections
             except Exception as ke:
@@ -441,11 +520,13 @@ async def analyze_image(file: UploadFile = File(...)):
         response_data = []
         for idx, det in enumerate(final_detections):
             x1, y1, x2, y2 = det["box"]
+            rot = det.get("rotation_deg", 0)
             piece_data = {
                 "piece_index": idx + 1,
                 "id": det["id"],
                 "match_distance": det["match_distance"],
                 "box": [x1, y1, x2, y2],
+                "rotation_deg": rot
             }
             response_data.append(piece_data)
             
@@ -456,6 +537,7 @@ async def analyze_image(file: UploadFile = File(...)):
                 "current_box": [x1, y1, x2, y2],
                 "img_w": img_w,
                 "img_h": img_h,
+                "rotation_deg": rot
             })
 
         print(f"  Detected {len(response_data)} pieces. Pipeline state updated.")
@@ -496,9 +578,15 @@ async def reassemble(mode: str = Form("celeba")):
             if db_any and db_any.get('metadatas') and len(db_any['metadatas']) > 0:
                 meta = db_any['metadatas'][0]
                 mx1, my1, mx2, my2 = map(float, meta['box'].split(','))
-                scale = int(meta['scale'])
-                master_width = int((mx2 - mx1) * scale)
-                master_height = int((my2 - my1) * scale)
+                if 'scale' in meta:
+                    scale = int(meta['scale'])
+                    master_width = int((mx2 - mx1) * scale)
+                    master_height = int((my2 - my1) * scale)
+                elif 'rows' in meta and 'cols' in meta:
+                    rows = int(meta['rows'])
+                    cols = int(meta['cols'])
+                    master_width = int((mx2 - mx1) * cols)
+                    master_height = int((my2 - my1) * rows)
         except Exception as e:
             print("Could not infer master size from DB:", e)
 
@@ -552,19 +640,29 @@ async def reassemble(mode: str = Form("celeba")):
             current_box = det["current_box"]
             img_w = det["img_w"]
             img_h = det["img_h"]
+            rotation_deg = det.get("rotation_deg", 0)
 
             # Current center of the detected piece in the scattered image
             cx = (current_box[0] + current_box[2]) / 2
             cy = (current_box[1] + current_box[3]) / 2
 
             # Parse Grid ID and fetch exact master coordinates from DB
-            target_x, target_y, rotation_deg = None, None, 0
+            target_x, target_y = None, None
             target_w, target_h = None, None
             direction_hint = "Unknown"
             
             if matched_id != "Unknown":
                 try:
-                    db_res = collection.get(ids=[matched_id])
+                    # Query ChromaDB with rotation suffix, falling back if not found
+                    db_res = collection.get(ids=[f"{matched_id}_rot{rotation_deg}"])
+                    if not db_res or not db_res.get('metadatas') or len(db_res['metadatas']) == 0:
+                        db_res = collection.get(ids=[f"{matched_id}_rot0"])
+                    if not db_res or not db_res.get('metadatas') or len(db_res['metadatas']) == 0:
+                        for r_deg in [90, 180, 270]:
+                            db_res = collection.get(ids=[f"{matched_id}_rot{r_deg}"])
+                            if db_res and db_res.get('metadatas') and len(db_res['metadatas']) > 0:
+                                break
+
                     if db_res and db_res.get('metadatas') and len(db_res['metadatas']) > 0:
                         meta = db_res['metadatas'][0]
                         mx1, my1, mx2, my2 = map(float, meta['box'].split(','))
@@ -576,14 +674,22 @@ async def reassemble(mode: str = Form("celeba")):
                         
                         grid_row = int(meta['row'])
                         grid_col = int(meta['col'])
-                        scale = int(meta['scale'])
+                        
+                        if 'scale' in meta:
+                            grid_rows = int(meta['scale'])
+                            grid_cols = int(meta['scale'])
+                        else:
+                            grid_rows = int(meta['rows'])
+                            grid_cols = int(meta['cols'])
 
                         # Human-readable direction hint for VLM (Phase 4)
                         start_h = "left" if cx < img_w / 3 else "right" if cx > 2 * img_w / 3 else "center"
                         start_v = "top" if cy < img_h / 3 else "bottom" if cy > 2 * img_h / 3 else "middle"
                         start_pos = "center" if start_h == "center" and start_v == "middle" else f"{start_v} {start_h}"
                         
-                        direction_hint = f"Currently sitting in the {start_pos} area of the workspace. Needs to be placed in row {grid_row + 1} (out of {scale}) and column {grid_col + 1} (out of {scale}) of the final image."
+                        direction_hint = f"Currently sitting in the {start_pos} area of the workspace. Needs to be placed in row {grid_row + 1} (out of {grid_rows}) and column {grid_col + 1} (out of {grid_cols}) of the final image."
+                        if rotation_deg != 0:
+                            direction_hint += f" Note: The piece is rotated. You need to rotate it by {360 - rotation_deg} degrees clockwise to align it correctly."
                 except Exception as e:
                     print(f"Error fetching exact target for {matched_id}: {e}")
 
@@ -609,11 +715,14 @@ async def reassemble(mode: str = Form("celeba")):
 
         print(f"  Unified {len(unified_results)} pieces for Phase 4.")
         
-        # Determine actual grid scale used for drawing
-        used_scale = 3
+        # Determine actual grid rows/cols used for drawing
+        used_rows = 3
+        used_cols = 3
         if unified_results and unified_results[0].get("matched_grid_id", "Unknown") != "Unknown":
             try:
-                used_scale = int(unified_results[0]["matched_grid_id"].split("_")[1].split("x")[0])
+                parts = unified_results[0]["matched_grid_id"].split("_")[1].split("x")
+                used_rows = int(parts[0])
+                used_cols = int(parts[1])
             except:
                 pass
                 
@@ -622,7 +731,8 @@ async def reassemble(mode: str = Form("celeba")):
             "mode_used": mode,
             "master_width": master_width,
             "master_height": master_height,
-            "grid_scale": used_scale,
+            "grid_rows": used_rows,
+            "grid_cols": used_cols,
             "results": unified_results
         }
 
@@ -642,7 +752,7 @@ def generate_steps(data: Phase3Data):
     print(f"[Step 4] Generating instructions for {len(data.fragment_data)} pieces...")
     
     start_time = time.time()
-    hints = [f"Piece {p.get('piece_index', '?')}: {p.get('direction_hint', 'matched location')}" for p in data.fragment_data]
+    hints = [f"Fragment {p.get('piece_index', '?')}: {p.get('direction_hint', 'matched location')}" for p in data.fragment_data]
     
     prompt = f"Spatial Data:\n{hints}"
     
